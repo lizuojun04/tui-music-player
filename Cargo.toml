@@ -1,0 +1,8 @@
+[package]
+name = "tui-music-player"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+symphonia = { version = "0.5.5", features = ["mp3", "isomp4", "wav", "flac", "aac", "pcm"] }
+walkdir = "2"
