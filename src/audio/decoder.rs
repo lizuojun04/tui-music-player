@@ -11,7 +11,8 @@ pub struct AudioDecoder {
     decoder: Box<dyn Decoder>,
     track_id: u32,
     sample_rate: u32,
-    channels: u16
+    channels: u16,
+    first_frame: Option<Vec<f32>>
 }
 
 impl AudioDecoder {
@@ -28,36 +29,34 @@ impl AudioDecoder {
                                                                         &Default::default())
                                                                 .expect("Failed to probe audio format");
 
-        let format_reader = probe.format;
+        let mut format_reader = probe.format;
 
         let track = format_reader.tracks()
                                          .iter()
                                          .find(Self::is_audio)
                                          .expect("No supported audio tracks found");
         let track_id = track.id;
-        let sample_rate = match track.codec_params.sample_rate {
-            Some(rate) => rate,
-            None => panic!("Audio track does not have a sample rate")
-        };
-        let channels = match track.codec_params.channels {
-            Some(channel) => channel.count() as u16,
-            None => panic!("Audio track does not have a channel count")
-        };
 
-        let decoder = symphonia::default::get_codecs().make(&track.codec_params, &Default::default())
+        let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &Default::default())
                                                                         .expect("Failed to create audio decoder");
+
+        let (sample_rate, channels, first_frame) = Self::get_first_simple(&mut format_reader, &mut decoder, &track_id);
 
         Self {
             format_reader,
             decoder,
             track_id,
             sample_rate,
-            channels
+            channels,
+            first_frame
         }
 
     }
 
     pub fn get_next_sample(&mut self) -> Option<Vec<f32>> {
+        if let Some(frame) = self.first_frame.take() {
+            return Some(frame);
+        }
         loop {
             let packet = match self.format_reader.next_packet() {
                 Ok(packet) => packet,
@@ -75,6 +74,33 @@ impl AudioDecoder {
                         sample_buffer.copy_interleaved_ref(decoded);
 
                         return Some(sample_buffer.samples().to_vec());
+                },
+                Err(_) => continue
+            }
+        }
+    }
+
+    fn get_first_simple(format_reader: &mut Box<dyn FormatReader>, decoder: &mut Box<dyn Decoder>, track_id: &u32) -> (u32, u16, Option<Vec<f32>>) {
+        loop {
+            let packet = match format_reader.next_packet() {
+                Ok(packet) => packet,
+                Err(_) => return (0, 0, None)
+            };
+
+            if packet.track_id() != *track_id {
+                continue;
+            }
+
+            match decoder.decode(&packet) {
+                Ok(decoded) => {
+                        let sample_rate = decoded.spec().rate;
+                        let channels = decoded.spec().channels.count() as u16;
+
+                        let mut sample_buffer = SampleBuffer::<f32>::new(decoded.capacity() as u64, *decoded.spec());
+
+                        sample_buffer.copy_interleaved_ref(decoded);
+
+                        return (sample_rate, channels, Some(sample_buffer.samples().to_vec()));
                 },
                 Err(_) => continue
             }
