@@ -1,10 +1,9 @@
 mod audio;
 mod utils;
+use cpal::traits::{HostTrait, DeviceTrait};
 
 fn main() {
-    let file_path_list = utils::file_manager::FileManager::get_file_path_list_static(std::path::PathBuf::from("/home/lizuojun/Music/"));
-    println!("{:?}", file_path_list.first().unwrap().display());
-    let mut audio_decoder = audio::decoder::AudioDecoder::new(file_path_list.first().unwrap().clone());
-    let packet = audio_decoder.get_next_sample();
-    println!("{}", packet.unwrap().len());
+    let path = std::path::PathBuf::from("/home/lizuojun/Music/Darlin' - BENI.mp3");
+    let player = audio::player::Player::new(path);
+    std::thread::sleep(std::time::Duration::from_secs(300))
 }

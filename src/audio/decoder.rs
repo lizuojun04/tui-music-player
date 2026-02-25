@@ -10,7 +10,8 @@ pub struct AudioDecoder {
     format_reader: Box<dyn FormatReader>,
     decoder: Box<dyn Decoder>,
     track_id: u32,
-    sample_rate: u32
+    sample_rate: u32,
+    channels: u16
 }
 
 impl AudioDecoder {
@@ -38,6 +39,10 @@ impl AudioDecoder {
             Some(rate) => rate,
             None => panic!("Audio track does not have a sample rate")
         };
+        let channels = match track.codec_params.channels {
+            Some(channel) => channel.count() as u16,
+            None => panic!("Audio track does not have a channel count")
+        };
 
         let decoder = symphonia::default::get_codecs().make(&track.codec_params, &Default::default())
                                                                         .expect("Failed to create audio decoder");
@@ -46,7 +51,8 @@ impl AudioDecoder {
             format_reader,
             decoder,
             track_id,
-            sample_rate
+            sample_rate,
+            channels
         }
 
     }
@@ -73,6 +79,14 @@ impl AudioDecoder {
                 Err(_) => continue
             }
         }
+    }
+
+    pub fn get_sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    pub fn get_channels(&self) -> u16 {
+        self.channels
     }
 
     fn is_audio(&track: &&symphonia::core::formats::Track) -> bool {
