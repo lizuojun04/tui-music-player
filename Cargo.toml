@@ -8,3 +8,4 @@ symphonia = { version = "0.5.5", features = ["mp3", "isomp4", "wav", "flac", "aa
 walkdir = "2"
 cpal = "0.17.3"
 ringbuf = "0.4.8"
+crossbeam-channel = "0.5.15"
