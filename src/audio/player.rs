@@ -62,22 +62,23 @@ impl Player {
     }
 
     pub fn play(&self) {
-
+        self.command_sender.send(PlayerCommand::Play).expect("Failed to send Play command");
     }
 
     pub fn pause(&self) {
-
+        self.command_sender.send(PlayerCommand::Pause).expect("Failed to send Pause command");
     }
 
     pub fn seek(&self, position_secs: u64) {
-
+        self.command_sender.send(PlayerCommand::Seek(position_secs)).expect("Failed to send Seek command");
     }
 
     pub fn stop(&self) {
-
+        self.command_sender.send(PlayerCommand::Stop).expect("Failed to send Stop command");
     }
 
     pub fn set_volume(&self, volume: f32) {
+        self.command_sender.send(PlayerCommand::SetVolume(volume)).expect("Failed to send SetVolume command");
     }
 
     fn audio_loop(state: Arc<PlaybackState>, command_receiver: Receiver<PlayerCommand>) {
@@ -86,27 +87,40 @@ impl Player {
 
         let mut stream: Option<Stream> = None;
         let mut decode_thread: Option<JoinHandle<()>> = None;
+        let mut current_path: Option<PathBuf> = None;
 
         loop {
             match command_receiver.try_recv() {
                 Ok(PlayerCommand::Load(path)) => {
                     println!("Loading file: {:?}", path);
-                    Self::load_process(path, &mut stream, &mut decode_thread, &device, state.clone());
+                    Self::process_load(path, &mut current_path, &mut stream, &mut decode_thread, &device, state.clone());
                 },
-                Ok(_) => {
-                    panic!("not implemented");
+                Ok(PlayerCommand::SetVolume(volume)) => {
+                    Self::process_set_volume(volume, state.clone());
+                },
+                Ok(PlayerCommand::Play) => {
+                    Self::process_play(state.clone());
+                },
+                Ok(PlayerCommand::Pause) => {
+                    Self::process_pause(state.clone());
+                },
+                Ok(PlayerCommand::Stop) => {
+                    Self::process_stop(&mut stream, &mut decode_thread, state.clone());
+                },
+                Ok(PlayerCommand::Seek(position_secs)) => {
+                    Self::process_seek(position_secs, &mut stream, &mut decode_thread, state.clone());
                 },
                 Err(_) => {
-                    print!("-");
                     std::thread::sleep(std::time::Duration::from_millis(500));
                 }
             }
         }
     }
 
-    fn load_process(path: PathBuf, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+    fn process_load(path: PathBuf, current_path: &mut Option<PathBuf>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
         *stream = None;
         *decode_thread = None;
+        *current_path = Some(path.clone());
 
         let new_decoder = AudioDecoder::new(path);
         let sample_rate = new_decoder.get_sample_rate();
@@ -140,6 +154,32 @@ impl Player {
 
     }
 
+    fn process_set_volume(volume: f32, state: Arc<PlaybackState>) {
+        if !(0.0..=100.0).contains(&volume) {
+            eprintln!("Volume must be between 0 and 100");
+            return;
+        }
+        state.volume.store(volume as u32, Ordering::Relaxed);
+    }
+
+    fn process_play(state: Arc<PlaybackState>) {
+        state.is_playing.store(true, Ordering::Relaxed);
+    }
+
+    fn process_pause(state: Arc<PlaybackState>) {
+        state.is_playing.store(false, Ordering::Relaxed);
+    }
+
+    fn process_stop(stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>) {
+        *stream = None;
+        *decode_thread = None;
+        state.is_playing.store(false, Ordering::Relaxed);
+        state.current_position.store(0, Ordering::Relaxed);
+    }
+
+    fn process_seek(position_secs: u64, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>) {
+
+    }
     fn build_output_stream<T>(device: &Device, stream_config: &StreamConfig, mut consumer: T, state: Arc<PlaybackState>) -> Stream 
         where
             T: ringbuf::traits::Consumer<Item = f32> + Send + 'static 
