@@ -108,7 +108,7 @@ impl Player {
                     Self::process_stop(&mut stream, &mut decode_thread, state.clone());
                 },
                 Ok(PlayerCommand::Seek(position_secs)) => {
-                    Self::process_seek(position_secs, &mut stream, &mut decode_thread, state.clone());
+                    Self::process_seek(current_path.clone().expect("seek before load"), position_secs, &mut stream, &mut decode_thread, &device, state.clone());
                 },
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(500));
@@ -118,11 +118,46 @@ impl Player {
     }
 
     fn process_load(path: PathBuf, current_path: &mut Option<PathBuf>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+        *current_path = Some(path.clone());
+        Self::load_and_play_at(path, None, stream, decode_thread, device, state);
+    }
+
+    fn process_set_volume(volume: f32, state: Arc<PlaybackState>) {
+        if !(0.0..=100.0).contains(&volume) {
+            eprintln!("Volume must be between 0 and 100");
+            return;
+        }
+        state.volume.store(volume as u32, Ordering::Relaxed);
+    }
+
+    fn process_play(state: Arc<PlaybackState>) {
+        state.is_playing.store(true, Ordering::Relaxed);
+    }
+
+    fn process_pause(state: Arc<PlaybackState>) {
+        state.is_playing.store(false, Ordering::Relaxed);
+    }
+
+    fn process_stop(stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>) {
         *stream = None;
         *decode_thread = None;
-        *current_path = Some(path.clone());
+        state.is_playing.store(false, Ordering::Relaxed);
+        state.current_position.store(0, Ordering::Relaxed);
+    }
 
-        let new_decoder = AudioDecoder::new(path);
+    /// TODO: 错误处理，如果 seek 失败，应该保持当前播放状态不变，并输出错误信息
+    fn process_seek(path: PathBuf, position_secs: u64, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+        Self::load_and_play_at(path, Some(position_secs), stream, decode_thread, device, state);
+    }
+
+    fn load_and_play_at(path: PathBuf, position_secs: Option<u64>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+        *stream = None;
+        *decode_thread = None;
+
+        let mut new_decoder = AudioDecoder::new(path);
+        if let Some(pos) = position_secs && !new_decoder.seek(pos) {
+            eprintln!("Failed to seek to position: {} seconds", pos);
+        }
         let sample_rate = new_decoder.get_sample_rate();
         let channels = new_decoder.get_channels();
 
@@ -154,32 +189,6 @@ impl Player {
 
     }
 
-    fn process_set_volume(volume: f32, state: Arc<PlaybackState>) {
-        if !(0.0..=100.0).contains(&volume) {
-            eprintln!("Volume must be between 0 and 100");
-            return;
-        }
-        state.volume.store(volume as u32, Ordering::Relaxed);
-    }
-
-    fn process_play(state: Arc<PlaybackState>) {
-        state.is_playing.store(true, Ordering::Relaxed);
-    }
-
-    fn process_pause(state: Arc<PlaybackState>) {
-        state.is_playing.store(false, Ordering::Relaxed);
-    }
-
-    fn process_stop(stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>) {
-        *stream = None;
-        *decode_thread = None;
-        state.is_playing.store(false, Ordering::Relaxed);
-        state.current_position.store(0, Ordering::Relaxed);
-    }
-
-    fn process_seek(position_secs: u64, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>) {
-
-    }
     fn build_output_stream<T>(device: &Device, stream_config: &StreamConfig, mut consumer: T, state: Arc<PlaybackState>) -> Stream 
         where
             T: ringbuf::traits::Consumer<Item = f32> + Send + 'static 

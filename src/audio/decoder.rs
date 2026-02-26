@@ -1,8 +1,9 @@
-use symphonia::core::formats::FormatReader;
+use symphonia::core::formats::{FormatReader, SeekMode, SeekTo};
 use symphonia::core::codecs::Decoder;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 use symphonia::core::audio::SampleBuffer;
+use symphonia::core::units::Time;
 use std::path::PathBuf;
 use std::fs::File;
 
@@ -113,6 +114,21 @@ impl AudioDecoder {
 
     pub fn get_channels(&self) -> u16 {
         self.channels
+    }
+
+    pub fn seek(&mut self, secs: u64) -> bool {
+        let seek_to = SeekTo::Time {
+            time: Time::new(secs, 0.0),
+            track_id: Some(self.track_id)
+        };
+
+        match self.format_reader.seek(SeekMode::Coarse, seek_to) {
+            Ok(_) => {
+                self.decoder.reset();
+                true
+            },
+            Err(_) => false
+        }
     }
 
     fn is_audio(&track: &&symphonia::core::formats::Track) -> bool {
