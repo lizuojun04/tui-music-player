@@ -15,39 +15,40 @@ pub struct UIDrawer {}
 
 impl UIDrawer {
     pub fn drawn_ui(frame: &mut Frame, app: &mut App) {
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(60),
-                Constraint::Percentage(40)
-            ])
-            .split(frame.area());
+        PlaylistDrawer::drawn_ui(frame, app, frame.area());
+        // let chunks = Layout::default()
+        //     .direction(Direction::Horizontal)
+        //     .constraints([
+        //         Constraint::Percentage(60),
+        //         Constraint::Percentage(40)
+        //     ])
+        //     .split(frame.area());
 
-        let left_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Percentage(10),
-                Constraint::Percentage(90)
-            ])
-            .split(chunks[0]);
+        // let left_chunks = Layout::default()
+        //     .direction(Direction::Vertical)
+        //     .constraints([
+        //         Constraint::Percentage(10),
+        //         Constraint::Percentage(90)
+        //     ])
+        //     .split(chunks[0]);
 
-        let search_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(50),
-                Constraint::Percentage(50)
-            ])
-            .split(left_chunks[0]);
+        // let search_chunks = Layout::default()
+        //     .direction(Direction::Horizontal)
+        //     .constraints([
+        //         Constraint::Percentage(50),
+        //         Constraint::Percentage(50)
+        //     ])
+        //     .split(left_chunks[0]);
 
-        let file_play_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(30),
-                Constraint::Percentage(70)
-            ])
-            .split(left_chunks[1]);
+        // let file_play_chunks = Layout::default()
+        //     .direction(Direction::Horizontal)
+        //     .constraints([
+        //         Constraint::Percentage(30),
+        //         Constraint::Percentage(70)
+        //     ])
+        //     .split(left_chunks[1]);
 
-        PlaylistDrawer::drawn_ui(frame, app, file_play_chunks[1]);
+        // PlaylistDrawer::drawn_ui(frame, app, file_play_chunks[1]);
     }
 }
 

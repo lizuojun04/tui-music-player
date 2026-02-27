@@ -23,7 +23,7 @@ fn main() -> std::io::Result<()> {
     let backend = ratatui::backend::CrosstermBackend::new(stdout);
     let mut terminal = ratatui::Terminal::new(backend)?;
 
-    let mut app = app::app::App::new(std::path::PathBuf::from("/home/lizuojun/Music"));
+    let mut app = app::app::App::new(std::path::PathBuf::from("/home/lizuojun/Music/"));
     let res = app.run(&mut terminal);
 
     crossterm::terminal::disable_raw_mode()?;

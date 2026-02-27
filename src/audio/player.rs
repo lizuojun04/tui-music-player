@@ -15,6 +15,10 @@ use std::{
         atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}}
 };
 
+pub enum PlayerEvent {
+    SongFinished
+}
+
 pub enum PlayerCommand {
     Load(PathBuf),  // Load a new audio file
     Play,           // playing
@@ -49,12 +53,12 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new() -> Self {
+    pub fn new(event_sender: Sender<PlayerEvent>) -> Self {
         let (command_sender, command_receiver) = unbounded();
         let state = Arc::new(PlaybackState::default());
         let audio_thread_state = state.clone();
         let audio_thread = std::thread::spawn(move || {
-            Self::audio_loop(audio_thread_state, command_receiver)
+            Self::audio_loop(audio_thread_state, command_receiver, event_sender)
         });
 
         Self {
@@ -88,7 +92,7 @@ impl Player {
         self.command_sender.send(PlayerCommand::SetVolume(volume)).expect("Failed to send SetVolume command");
     }
 
-    fn audio_loop(state: Arc<PlaybackState>, command_receiver: Receiver<PlayerCommand>) {
+    fn audio_loop(state: Arc<PlaybackState>, command_receiver: Receiver<PlayerCommand>, event_sender: Sender<PlayerEvent>) {
         let host = cpal::default_host();
         let device = host.default_output_device().expect("Failed to get default output device");
 
@@ -97,6 +101,9 @@ impl Player {
         let mut current_path: Option<PathBuf> = None;
 
         loop {
+            if let Some(handle) = &decode_thread && handle.is_finished() {
+                Self::process_finished(&mut stream, &mut decode_thread, state.clone(), &event_sender);
+            }
             match command_receiver.try_recv() {
                 Ok(PlayerCommand::Load(path)) => {
                     Self::process_load(path, &mut current_path, &mut stream, &mut decode_thread, &device, state.clone());
@@ -120,7 +127,17 @@ impl Player {
                     std::thread::sleep(std::time::Duration::from_millis(500));
                 }
             }
+            // WARN 这里真的需要 sleep 吗
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
+    }
+
+    fn process_finished(stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, state: Arc<PlaybackState>, event_sender: &Sender<PlayerEvent>) {
+        event_sender.send(PlayerEvent::SongFinished).expect("Failed to send SongFinished event");
+        *stream = None;
+        *decode_thread = None;
+        state.is_playing.store(false, Ordering::Relaxed);
+        state.current_position.store(0, Ordering::Relaxed);
     }
 
     fn process_load(path: PathBuf, current_path: &mut Option<PathBuf>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {

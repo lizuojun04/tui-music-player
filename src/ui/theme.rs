@@ -4,16 +4,9 @@ use ratatui::{
     style::{self, Color, palette::tailwind}
 };
 
+#[derive(Default)]
 pub struct Theme {
     pub playlist_theme: PlaylistTheme
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Self {
-            playlist_theme: PlaylistTheme::default()
-        }
-    }
 }
 
 pub struct PlaylistTheme {
@@ -32,7 +25,7 @@ pub struct PlaylistTheme {
     pub scrollbar_thumb_symbol: &'static str,
     pub scrollbar_thumb_style: style::Style,
     pub scrollbar_end_symbol: &'static str,
-    // pub scrollbar_style: style::Style,
+    pub scrollbar_style: style::Style,
     pub item_height: usize
 }
 
@@ -45,7 +38,10 @@ impl Default for PlaylistTheme {
             table_border_type: BorderType::Rounded,
             table_border_style: style::Style::default().fg(const_colors::LIGHT_BLUE),
             table_column_spacing: 2,
-            table_row_highlight_style: style::Style::default().fg(const_colors::GREEN).bold(),
+            table_row_highlight_style: style::Style::default()
+                .bg(const_colors::LIGHT_GRAY)
+                .fg(const_colors::GREEN)
+                .bold(),
             table_highlight_symbol: " ",
             table_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             scrollbar_begin_symbol: "",// "󰗴",
@@ -54,8 +50,8 @@ impl Default for PlaylistTheme {
             scrollbar_thumb_symbol: "󱪽",
             scrollbar_thumb_style: style::Style::default().fg(const_colors::BLUE),
             scrollbar_end_symbol: "",
-            // scrollbar_style: style::Style::default().fg(const_colors::DARK_GREEN),
-            item_height: 4
+            scrollbar_style: style::Style::default(),
+            item_height: 1
         }
     }
 }
@@ -68,6 +64,7 @@ pub mod const_colors {
     pub const GREEN: Color = Color::Rgb(21, 194, 146);
     pub const DARK_GREEN: Color = Color::Rgb(20, 150, 100);
     pub const GRAY_BLUE:  Color = Color::Rgb(150, 180, 250);
+    pub const LIGHT_GRAY: Color = Color::Rgb(20, 30, 30);
     pub const DARK_GRAY:  Color = Color::Rgb(120, 120, 120);
     pub const DARK_GRAY_BLUE:  Color = Color::Rgb(90, 110, 150);
 }

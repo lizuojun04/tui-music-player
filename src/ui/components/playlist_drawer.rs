@@ -4,6 +4,7 @@ use crate::app::{
     app::App
 };
 use ratatui::style::Stylize;
+use ratatui::widgets::TitlePosition;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Color, palette::tailwind, Style},
@@ -19,12 +20,40 @@ pub struct PlaylistDrawer {
 // TODO 样式设计
 impl Drawable for PlaylistDrawer {
     fn drawn_ui(frame: &mut Frame, app: &mut App, area: ratatui::prelude::Rect) {
-        Self::render_table(frame, app, area);
-        Self::render_scrollbar(frame, app, area);
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Min(0),
+                Constraint::Length(2)
+            ])
+            .split(Self::render_block_with_border(frame, app, area));
+        Self::render_table(frame, app, chunks[0]);
+        Self::render_scrollbar(frame, app, chunks[1]);
     }
 }
 
 impl PlaylistDrawer {
+    fn render_block_with_border(frame: &mut Frame, app: &mut App, area: ratatui::prelude::Rect) -> ratatui::prelude::Rect{
+        let block = Block::default()
+            .borders(app.theme.playlist_theme.table_borders)
+            .title(Line::from("Playlist").left_aligned())
+            .title(
+                Line::from(
+                    match app.current_playing_song_index {
+                        Some(index) => {
+                            let item = &app.playlist.items[index];
+                            item.name.to_string()
+                        },
+                        None => "waiting for a song".to_string()
+                    }
+                ).right_aligned()
+            )
+            .border_type(app.theme.playlist_theme.table_border_type)
+            .border_style(app.theme.playlist_theme.table_border_style);
+        let inner_area = block.inner(area);
+        frame.render_widget(block, area);
+        inner_area
+    }
     fn render_table(frame: &mut Frame, app: &mut App, area: ratatui::prelude::Rect) {
         let rows = app.playlist.items.iter().map(|item| {
             let style = app.theme.playlist_theme.table_cell_style;
@@ -41,18 +70,11 @@ impl PlaylistDrawer {
             Cell::from("Artist").style(header_style),
             Cell::from("Work").style(header_style)
         ]);
-        let block = Block::default()
-            .borders(app.theme.playlist_theme.table_borders)
-            .title("Playlist")
-            .border_type(app.theme.playlist_theme.table_border_type)
-            .border_style(app.theme.playlist_theme.table_border_style)
-            .style(Style::default());
         let table = Table::new(rows, widths)
             .column_spacing(app.theme.playlist_theme.table_column_spacing)
             .header(header)
             .row_highlight_style(app.theme.playlist_theme.table_row_highlight_style)
             .highlight_symbol(app.theme.playlist_theme.table_highlight_symbol)
-            .block(block)
             .style(app.theme.playlist_theme.table_style);
         frame.render_stateful_widget(table, area, &mut app.playlist_table_state);
     }
@@ -67,10 +89,7 @@ impl PlaylistDrawer {
                 .thumb_symbol(app.theme.playlist_theme.scrollbar_thumb_symbol)
                 .thumb_style(app.theme.playlist_theme.scrollbar_thumb_style)
                 .end_symbol(Some(app.theme.playlist_theme.scrollbar_end_symbol)),
-            area.inner(Margin {
-                vertical: 1,
-                horizontal: 2
-            }),
+            area,
             &mut app.playlist_scroll_state
         )
     }
