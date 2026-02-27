@@ -1,11 +1,15 @@
-use symphonia::core::formats::{FormatReader, SeekMode, SeekTo};
-use symphonia::core::codecs::Decoder;
-use symphonia::core::io::MediaSourceStream;
-use symphonia::core::probe::Hint;
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::units::Time;
-use std::path::PathBuf;
-use std::fs::File;
+use symphonia::core::{
+    formats::{FormatReader, SeekMode, SeekTo},
+    codecs::Decoder,
+    io::MediaSourceStream,
+    probe::Hint,
+    audio::SampleBuffer,
+    units::Time
+};
+use std::{
+    path::PathBuf,
+    fs::File
+};
 
 pub struct AudioDecoder {
     format_reader: Box<dyn FormatReader>,

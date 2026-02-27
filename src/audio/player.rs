@@ -1,12 +1,19 @@
-use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
-use cpal::{Device, Stream, StreamConfig};
+use cpal::{
+    traits::{HostTrait, DeviceTrait, StreamTrait},
+    Device,
+    Stream,
+    StreamConfig
+};
 use ringbuf::{traits::Split, HeapRb};
 use crossbeam_channel::{unbounded, Sender, Receiver};
 use crate::audio::decoder::AudioDecoder;
-use std::path::PathBuf;
-use std::thread::{self, JoinHandle};
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::{
+    path::PathBuf,
+    thread::{self, JoinHandle},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}}
+};
 
 pub enum PlayerCommand {
     Load(PathBuf),  // Load a new audio file
@@ -37,7 +44,7 @@ impl Default for PlaybackState {
 
 pub struct Player {
     command_sender: Sender<PlayerCommand>,
-    state: Arc<PlaybackState>,
+    pub state: Arc<PlaybackState>,
     audio_thread: JoinHandle<()>
 }
 
@@ -92,7 +99,6 @@ impl Player {
         loop {
             match command_receiver.try_recv() {
                 Ok(PlayerCommand::Load(path)) => {
-                    println!("Loading file: {:?}", path);
                     Self::process_load(path, &mut current_path, &mut stream, &mut decode_thread, &device, state.clone());
                 },
                 Ok(PlayerCommand::SetVolume(volume)) => {

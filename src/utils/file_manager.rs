@@ -14,6 +14,7 @@ impl FileManager {
         WalkDir::new(&self.root_dir).follow_links(true)
                                           .into_iter()
                                           .filter_map(|entry| entry.ok())
+                                          .filter_map(|file| if file.file_type().is_file() { Some(file) } else { None })
                                           .map(|entry| entry.path().to_path_buf())
                                           .collect::<Vec<PathBuf>>()
     }
