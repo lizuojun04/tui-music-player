@@ -1,4 +1,4 @@
-use crate::{app::app::App, ui::components::playlist_drawer::PlaylistDrawer}; 
+use crate::{app::{app::App}, ui::components::{file_browser_drawer::FileBrowserDrawer, playlist_drawer::PlaylistDrawer}}; 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
@@ -15,7 +15,15 @@ pub struct UIDrawer {}
 
 impl UIDrawer {
     pub fn drawn_ui(frame: &mut Frame, app: &mut App) {
-        PlaylistDrawer::drawn_ui(frame, app, frame.area());
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(30),
+                Constraint::Percentage(70)
+            ])
+            .split(frame.area());
+        FileBrowserDrawer::drawn_ui(frame, app, chunks[0]);
+        PlaylistDrawer::drawn_ui(frame, app, chunks[1]);
         // let chunks = Layout::default()
         //     .direction(Direction::Horizontal)
         //     .constraints([
