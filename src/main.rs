@@ -2,18 +2,6 @@ mod audio;
 mod utils;
 mod ui;
 mod app;
-use cpal::traits::{HostTrait, DeviceTrait};
-use audio::player::{Player, PlayerCommand};
-use ratatui::style::{Color, Modifier, Style, Stylize};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Paragraph};
-
-use crossterm::event;
-use ratatui::{
-    layout::{Constraint, Layout},
-    widgets::Block,
-    Frame,
-};
 
 fn main() -> std::io::Result<()> {
     crossterm::terminal::enable_raw_mode()?;

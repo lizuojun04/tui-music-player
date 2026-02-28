@@ -1,9 +1,13 @@
 use crate::{
-    audio::player::{Player, PlayerEvent},
+    audio::player::{Player},
     ui::{ui, theme}, 
-    utils::file_manager::FileManager, 
+    utils::{
+        file_manager::FileManager, 
+        key_input::KeyInput
+    },
     app::components::playlist::{Playlist},
-    app::components::file_browser::{FileBrowser}
+    app::components::file_browser::{FileBrowser},
+    app::event::{MainEvent, PlayerEvent}
 };
 use std::{
     path::PathBuf,
@@ -38,19 +42,23 @@ pub struct App {
     player: Player,
     activate_block: ActiveBlock,
 
-    event_receiver: crossbeam_channel::Receiver<PlayerEvent>,
+    pub event_sender: crossbeam_channel::Sender<MainEvent>,
+    event_receiver: crossbeam_channel::Receiver<MainEvent>,
 
     pub current_path: PathBuf,
     pub current_playing_song_index: Option<usize>,
 
     pub file_browser: FileBrowser,
+    file_browser_parent_index: Option<usize>,
     pub file_browser_list_state: ListState,
 
     pub playlist: Playlist,
     pub playlist_scroll_state: ScrollbarState,
     pub playlist_table_state: TableState,
 
-    pub theme: theme::Theme
+    pub theme: theme::Theme,
+
+    need_redraw: bool
 }
 
 impl App {
@@ -64,18 +72,22 @@ impl App {
         let playlist = Playlist::from_paths(FileManager::get_file_path_list_static(root_dir.clone()));
         let playlist_scroll_state = ScrollbarState::new(playlist.items.len() * theme.playlist_theme.item_height);
         let playlist_table_state = TableState::new().with_selected(Some(0));
+
         Self {
-            player: Player::new(event_sender),
+            player: Player::new(event_sender.clone()),
             activate_block: ActiveBlock::PlaylistBlock,
+            event_sender,
             event_receiver,
             current_path: root_dir,
             current_playing_song_index: None,
             file_browser,
+            file_browser_parent_index: None,
             file_browser_list_state,
             playlist,
             playlist_scroll_state,
             playlist_table_state,
-            theme
+            theme,
+            need_redraw: true
         }
     }
 
@@ -83,23 +95,17 @@ impl App {
         where 
             B: Backend<Error = io::Error>
     {
+        KeyInput::listen_key_input(self.event_sender.clone());
+
         loop {
-            if let Ok(event) = self.event_receiver.try_recv() {
-                match event {
-                    PlayerEvent::SongFinished => {
-                        self.play_next_song();
-                    }
-                }
+            if self.need_redraw {
+                terminal.draw(|frame| {
+                    ui::UIDrawer::drawn_ui(frame, self);
+                })?;
+                self.need_redraw = false;
             }
-
-            terminal.draw(|frame| {
-                ui::UIDrawer::drawn_ui(frame, self);
-            })?;
-
-            // TODO 键位绑定不应该硬编码
-            if crossterm::event::poll(std::time::Duration::from_millis(16))? {
-                if let crossterm::event::Event::Key(key) = crossterm::event::read()? {
-
+            match self.event_receiver.recv() {
+                Ok(MainEvent::Key(key)) => {
                     match self.activate_block {
                         ActiveBlock::PlaylistBlock => {
                             match key.code {
@@ -129,12 +135,18 @@ impl App {
                         _ => {}
                     }
                 }
+                Ok(MainEvent::Player(PlayerEvent::SongFinished)) => {
+                    self.play_next_song();
+                    self.need_redraw = true;
+                },
+                Err(_) => return Ok(false)
             }
         }
     }
 
     fn switch_to(&mut self, activate_block: ActiveBlock) {
         self.activate_block = activate_block;
+        self.need_redraw = true;
     }
 
     fn play_next_song(&mut self) {
@@ -151,6 +163,7 @@ impl App {
             }
         }
         self.player.load(self.playlist.items[self.current_playing_song_index.unwrap()].get_file_path().clone());
+        self.need_redraw = true;
     }
 
     fn play_previous_song(&mut self) {
@@ -167,6 +180,7 @@ impl App {
             }
         }
         self.player.load(self.playlist.items[self.current_playing_song_index.unwrap()].get_file_path().clone());
+        self.need_redraw = true;
     }
 
     fn previous_playlist_item(&mut self) {
@@ -182,6 +196,7 @@ impl App {
         };
         self.playlist_table_state.select(Some(selected));
         self.playlist_scroll_state = self.playlist_scroll_state.position(selected * self.theme.playlist_theme.item_height);
+        self.need_redraw = true;
     }
 
     fn next_playlist_item(&mut self) {
@@ -197,6 +212,7 @@ impl App {
         };
         self.playlist_table_state.select(Some(selected));
         self.playlist_scroll_state = self.playlist_scroll_state.position(selected * self.theme.playlist_theme.item_height);
+        self.need_redraw = true;
     }
 
     fn load_playlist_item(&mut self) {
@@ -204,6 +220,7 @@ impl App {
             self.current_playing_song_index = Some(selected);
             self.player.load(self.playlist.items[selected].get_file_path().clone());
         }
+        self.need_redraw = true;
     }
 
     fn toggle_play_pause_playlist_item(&mut self) {
@@ -212,6 +229,7 @@ impl App {
         } else {
             self.player.play();
         }
+        self.need_redraw = true;
     }
 
     fn previous_file_browser_item(&mut self) {
@@ -226,6 +244,7 @@ impl App {
             None => 0,
         };
         self.file_browser_list_state.select(Some(selected));
+        self.need_redraw = true;
     }
 
     fn next_file_browser_item(&mut self) {
@@ -240,10 +259,12 @@ impl App {
             None => 0,
         };
         self.file_browser_list_state.select(Some(selected));
+        self.need_redraw = true;
     }
 
     fn enter_directory(&mut self) {
         if let Some(selected) = self.file_browser_list_state.selected() {
+            self.file_browser_parent_index = Some(selected);
             let selected_path = self.file_browser.items[selected].get_file_path();
             if selected_path.is_dir() {
                 self.current_path = selected_path.clone();
@@ -251,14 +272,16 @@ impl App {
                 self.file_browser_list_state.select(Some(0));
             }
         }
+        self.need_redraw = true;
     }
 
     fn parent_directory(&mut self) {
         if let Some(parent_path) = self.current_path.parent() {
             self.current_path = parent_path.to_path_buf();
             self.file_browser = FileBrowser::from_paths(FileManager::get_entry_list_static(self.current_path.clone()));
-            self.file_browser_list_state.select(Some(0));
+            self.file_browser_list_state.select(self.file_browser_parent_index);
         }
+        self.need_redraw = true;
     }
 
     /// WARN 如何处理 current_playing_song_index
@@ -267,6 +290,7 @@ impl App {
         self.playlist_table_state.select(Some(0));
         self.playlist_scroll_state = self.playlist_scroll_state.position(0);
         self.current_playing_song_index = None;
+        self.need_redraw = true;
     }
 
 }
