@@ -7,7 +7,8 @@ use ratatui::{
 #[derive(Default)]
 pub struct Theme {
     pub playlist_theme: PlaylistTheme,
-    pub file_browser_theme: FileBrowserTheme
+    pub file_browser_theme: FileBrowserTheme,
+    pub music_info_theme: MusicInfoTheme
 }
 
 pub struct PlaylistTheme {
@@ -77,6 +78,39 @@ impl Default for FileBrowserTheme {
             list_directory_style: style::Style::default().fg(const_colors::BLUE).bold(),
             list_highlight_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::CYAN).bold(),
             list_highlight_symbol: " "
+        }
+    }
+}
+
+pub struct MusicInfoTheme {
+    pub music_info_borders: Borders,
+    pub music_info_border_type: BorderType,
+    pub music_info_border_style: style::Style,
+    pub table_cell_style: style::Style,
+    pub table_column_spacing: u16,
+    pub logo: &'static str,
+    pub logo_style: style::Style
+}
+
+impl Default for MusicInfoTheme {
+    fn default() -> Self {
+        Self {
+            music_info_borders: Borders::ALL,
+            music_info_border_type: BorderType::Rounded,
+            music_info_border_style: style::Style::default().fg(const_colors::GREEN),
+            table_cell_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
+            table_column_spacing: 2,
+            logo: 
+   r#" __           
+      /\ \__               
+ _____\ \  _\   ________   
+/\  __ \ \ \/  / __  __ \  
+\ \ \_\ \ \ \_/\ \/\ \/\ \ 
+ \ \  __/\ \__\ \_\ \_\ \_\
+  \ \ \/  \/__/\/_/\/_/\/_/
+   \ \_\                  
+    \/_/                   "#,
+            logo_style: style::Style::default().fg(const_colors::CYAN).bold()
         }
     }
 }

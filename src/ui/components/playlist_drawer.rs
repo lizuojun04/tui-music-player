@@ -1,6 +1,6 @@
-use crate::ui::ui::Drawable;
-use crate::app::{
-    app::App
+use crate::{
+    ui::ui::Drawable,
+    app::app::App
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout, Margin, Rect},

@@ -11,16 +11,43 @@ use crate::{
 };
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}
+    sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}, time::Duration
 };
-use crossbeam_channel::unbounded;
+use crossbeam_channel::{unbounded, RecvTimeoutError};
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Scrollbar, ScrollbarOrientation, ScrollbarState, TableState}, 
+    widgets::{ListState, ScrollbarState, TableState}, 
     Terminal,
 };
 
 use std::io;
+
+pub struct CurrentSongInfo {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub duration: f64,
+}
+
+impl CurrentSongInfo {
+    pub fn change_info(&mut self, info_tuple: (String, String, String, f64)) {
+        self.title = info_tuple.0;
+        self.artist = info_tuple.1;
+        self.album = info_tuple.2;
+        self.duration = info_tuple.3;
+    }
+}
+
+impl Default for CurrentSongInfo {
+    fn default() -> Self {
+        Self {
+            title: "Unknown".to_string(),
+            artist: "Unknown".to_string(),
+            album: "Unknown".to_string(),
+            duration: 0.0,
+        }
+    }
+}
 
 enum CurrentScreen {
     MainScreen,
@@ -56,6 +83,8 @@ pub struct App {
     pub playlist_scroll_state: ScrollbarState,
     pub playlist_table_state: TableState,
 
+    pub current_song_info: CurrentSongInfo,
+
     pub theme: theme::Theme,
 
     need_redraw: bool
@@ -86,6 +115,7 @@ impl App {
             playlist,
             playlist_scroll_state,
             playlist_table_state,
+            current_song_info: CurrentSongInfo::default(),
             theme,
             need_redraw: true
         }
@@ -104,7 +134,7 @@ impl App {
                 })?;
                 self.need_redraw = false;
             }
-            match self.event_receiver.recv() {
+            match self.event_receiver.recv_timeout(Duration::from_millis(1000)) {
                 Ok(MainEvent::Key(key)) => {
                     match self.activate_block {
                         ActiveBlock::PlaylistBlock => {
@@ -137,6 +167,13 @@ impl App {
                 }
                 Ok(MainEvent::Player(PlayerEvent::SongFinished)) => {
                     self.play_next_song();
+                    self.need_redraw = true;
+                },
+                Ok(MainEvent::Player(PlayerEvent::SongInfo(info_tuple))) => {
+                    self.current_song_info.change_info(info_tuple);
+                    self.need_redraw = true;
+                },
+                Err(RecvTimeoutError::Timeout) => {
                     self.need_redraw = true;
                 },
                 Err(_) => return Ok(false)
@@ -291,6 +328,10 @@ impl App {
         self.playlist_scroll_state = self.playlist_scroll_state.position(0);
         self.current_playing_song_index = None;
         self.need_redraw = true;
+    }
+
+    pub fn get_current_position(&self) -> f64 {
+        self.player.get_current_position()
     }
 
 }

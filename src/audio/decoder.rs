@@ -4,7 +4,8 @@ use symphonia::core::{
     io::MediaSourceStream,
     probe::Hint,
     audio::SampleBuffer,
-    units::Time
+    units::Time,
+    meta,
 };
 use std::{
     path::PathBuf,
@@ -15,6 +16,7 @@ pub struct AudioDecoder {
     format_reader: Box<dyn FormatReader>,
     decoder: Box<dyn Decoder>,
     track_id: u32,
+    n_frames: u64,
     sample_rate: u32,
     channels: u16,
     first_frame: Option<Vec<f32>>
@@ -28,22 +30,27 @@ impl AudioDecoder {
 
         let hint = Hint::new();
 
-        let probe = symphonia::default::get_probe().format(&hint, 
-                                                                        media_source_stream, 
-                                                                        &Default::default(), 
-                                                                        &Default::default())
-                                                                .expect("Failed to probe audio format");
+        let probe = symphonia::default::get_probe()
+            .format(&hint, 
+                    media_source_stream, 
+                    &Default::default(), 
+                    &Default::default())
+            .expect("Failed to probe audio format");
 
         let mut format_reader = probe.format;
 
-        let track = format_reader.tracks()
-                                         .iter()
-                                         .find(Self::is_audio)
-                                         .expect("No supported audio tracks found");
+        let track = format_reader
+            .tracks()
+            .iter()
+            .find(Self::is_audio)
+            .expect("No supported audio tracks found");
         let track_id = track.id;
 
-        let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &Default::default())
-                                                                        .expect("Failed to create audio decoder");
+        let n_frames = track.codec_params.n_frames.unwrap_or(0);
+
+        let mut decoder = symphonia::default::get_codecs()
+            .make(&track.codec_params, &Default::default())
+            .expect("Failed to create audio decoder");
 
         let (sample_rate, channels, first_frame) = Self::get_first_simple(&mut format_reader, &mut decoder, &track_id);
 
@@ -51,11 +58,32 @@ impl AudioDecoder {
             format_reader,
             decoder,
             track_id,
+            n_frames,
             sample_rate,
             channels,
             first_frame
         }
 
+    }
+
+    pub fn get_song_info(&mut self) -> (String, String, String, f64) {
+
+        let mut title = "Unknown Title".to_string();
+        let mut artist = "Unknown Artist".to_string();
+        let mut album = "Unknown Album".to_string();
+
+        if let Some(metadata) = self.format_reader.metadata().current() {
+            for tag in metadata.tags() {
+                match tag.std_key {
+                    Some(meta::StandardTagKey::TrackTitle) => title = tag.value.to_string(),
+                    Some(meta::StandardTagKey::Artist) => artist = tag.value.to_string(),
+                    Some(meta::StandardTagKey::Album) => album = tag.value.to_string(),
+                    _ => {}
+                }
+            }
+        }
+
+        (title, artist, album, self.n_frames as f64 / self.sample_rate as f64)
     }
 
     pub fn get_next_sample(&mut self) -> Option<Vec<f32>> {

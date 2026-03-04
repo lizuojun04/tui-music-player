@@ -5,7 +5,6 @@ use cpal::{
     StreamConfig
 };
 use ringbuf::{
-    producer::Producer,
     traits::Split, HeapRb};
 use crossbeam_channel::{unbounded, Sender, Receiver};
 use crate::{
@@ -13,11 +12,8 @@ use crate::{
     app::event::{MainEvent, PlayerEvent }
 };
 use std::{
-    path::PathBuf,
-    thread::{self, JoinHandle},
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}}
+    path::PathBuf, sync::{
+        atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, Ordering}, Arc}, thread::{self, JoinHandle}
 };
 
 
@@ -34,8 +30,9 @@ pub enum PlayerCommand {
 pub struct PlaybackState {
     pub is_playing: AtomicBool,
     pub volume: AtomicU32,
-    pub current_position: AtomicU64,
-    pub total_duration_secs: AtomicU64
+    pub played_samples: AtomicU64,
+    pub sample_rate: AtomicU32,
+    pub channels: AtomicU16
 }
 
 impl Default for PlaybackState {
@@ -43,8 +40,9 @@ impl Default for PlaybackState {
         Self {
             is_playing: AtomicBool::new(false),
             volume: AtomicU32::new(100), // 默认音量为 100%
-            current_position: AtomicU64::new(0),
-            total_duration_secs: AtomicU64::new(0)
+            played_samples: AtomicU64::new(0),
+            sample_rate: AtomicU32::new(44100), // 默认采样率
+            channels: AtomicU16::new(2) // 默认双声道
         }
     }
 }
@@ -107,7 +105,7 @@ impl Player {
         loop {
             match command_receiver.recv() {
                 Ok(PlayerCommand::Load(path)) => {
-                    Self::process_load(command_sender.clone(), path, &mut current_path, &mut stream, &mut decode_thread, &device, state.clone());
+                    Self::process_load(command_sender.clone(), event_sender.clone(), path, &mut current_path, &mut stream, &mut decode_thread, &device, state.clone());
                 },
                 Ok(PlayerCommand::SetVolume(volume)) => {
                     Self::process_set_volume(volume, state.clone());
@@ -139,12 +137,11 @@ impl Player {
         *stream = None;
         *decode_thread = None;
         state.is_playing.store(false, Ordering::Relaxed);
-        state.current_position.store(0, Ordering::Relaxed);
     }
 
-    fn process_load(command_sender: Sender<PlayerCommand>, path: PathBuf, current_path: &mut Option<PathBuf>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+    fn process_load(command_sender: Sender<PlayerCommand>, event_sender: Sender<MainEvent>, path: PathBuf, current_path: &mut Option<PathBuf>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
         *current_path = Some(path.clone());
-        Self::load_and_play_at(command_sender, path, None, stream, decode_thread, device, state);
+        Self::load_and_play_at(command_sender, Some(event_sender), path, None, stream, decode_thread, device, state);
     }
 
     fn process_set_volume(volume: f32, state: Arc<PlaybackState>) {
@@ -167,21 +164,33 @@ impl Player {
         *stream = None;
         *decode_thread = None;
         state.is_playing.store(false, Ordering::Relaxed);
-        state.current_position.store(0, Ordering::Relaxed);
+        state.played_samples.store(0, Ordering::Relaxed);
     }
 
     /// TODO: 错误处理，如果 seek 失败，应该保持当前播放状态不变，并输出错误信息
     fn process_seek(command_sender: Sender<PlayerCommand>, path: PathBuf, position_secs: u64, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
-        Self::load_and_play_at(command_sender, path, Some(position_secs), stream, decode_thread, device, state);
+        Self::load_and_play_at(command_sender, None, path, Some(position_secs), stream, decode_thread, device, state);
     }
 
-    fn load_and_play_at(command_sender: Sender<PlayerCommand>, path: PathBuf, position_secs: Option<u64>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
+    fn load_and_play_at(command_sender: Sender<PlayerCommand>, event_sender: Option<Sender<MainEvent>>, path: PathBuf, position_secs: Option<u64>, stream: &mut Option<Stream>, decode_thread: &mut Option<JoinHandle<()>>, device: &Device, state: Arc<PlaybackState>) {
         *stream = None;
         *decode_thread = None;
 
         let mut new_decoder = AudioDecoder::new(path);
-        if let Some(pos) = position_secs && !new_decoder.seek(pos) {
-            eprintln!("Failed to seek to position: {} seconds", pos);
+        match position_secs {
+            Some(pos) => {
+                if !new_decoder.seek(pos) {
+                    eprintln!("Failed to seek to position: {} seconds", pos);
+                }
+                // TODO played_samples
+            },
+            None => {
+                state.played_samples.store(0, Ordering::Relaxed);
+            }
+        }
+
+        if let Some(event_sender) = event_sender {
+             event_sender.send(MainEvent::Player(PlayerEvent::SongInfo(new_decoder.get_song_info()))).expect("Failed to send SongInfo event");
         }
         let sample_rate = new_decoder.get_sample_rate();
         let channels = new_decoder.get_channels();
@@ -211,6 +220,8 @@ impl Player {
         *decode_thread = Some(new_decode_thread);
 
         state.is_playing.store(true, Ordering::Relaxed);
+        state.sample_rate.store(sample_rate, Ordering::Relaxed);
+        state.channels.store(channels, Ordering::Relaxed);
 
     }
 
@@ -222,6 +233,7 @@ impl Player {
                                    move |data, _| {
                                        let is_playing = state.is_playing.load(Ordering::Relaxed);
                                        let volume_multiplier = state.volume.load(Ordering::Relaxed) as f32 / 100.0;
+                                       state.played_samples.fetch_add(data.len() as u64, Ordering::Relaxed);
                                        for sample in data.iter_mut() {
                                            *sample = if is_playing {
                                                consumer.try_pop().unwrap_or(0.0) * volume_multiplier
@@ -251,6 +263,13 @@ impl Player {
             }
             command_sender.send(PlayerCommand::SendFinishedEvent).expect("Failed to send SendFinishedEvent command");
         })
+    }
+
+    pub fn get_current_position(&self) -> f64 {
+        let played_samples = self.state.played_samples.load(Ordering::Relaxed);
+        let sample_rate = self.state.sample_rate.load(Ordering::Relaxed);
+        let channels = self.state.channels.load(Ordering::Relaxed);
+        played_samples as f64 / (sample_rate as f64 * channels as f64)
     }
 }
 
