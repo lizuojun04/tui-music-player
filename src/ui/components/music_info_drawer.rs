@@ -5,10 +5,11 @@ use crate::{
 };
 
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Margin, Rect},
-    style::{Color, palette::tailwind, Style},
+    buffer::{Buffer, Cell as BufferCell},
+    layout::{Constraint, Direction, Layout, Position, Rect},
+    style::{palette::tailwind, Color, Style},
     text::{Line, Span, Text},
-    widgets::{Cell, Block, Borders, BorderType, Clear, List, LineGauge, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, Wrap}, 
+    widgets::{Block, BorderType, Borders, Cell, Clear, LineGauge, List, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Table, Wrap}, 
     Frame
 };
 
@@ -16,22 +17,19 @@ pub struct MusicInfoDrawer;
 
 impl Drawable for MusicInfoDrawer {
     fn drawn_ui(frame: &mut Frame, app: &mut App, area: Rect) {
-        // LOGO
         // picture
-        // name
-        // time
         // volume
-        // 进度条
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(9),
-                Constraint::Percentage(50),
-                Constraint::Percentage(30),
-                Constraint::Min(1)
+                Constraint::Min(12),
+                Constraint::Percentage(100),
+                Constraint::Min(7),
+                Constraint::Min(4)
             ])
             .split(Self::render_block_with_border(frame, app, area));
         Self::render_logo(frame, app, chunks[0]);
+        Self::render_picture(frame, app, chunks[1]);
         Self::render_text_info(frame, app, chunks[2]);
         Self::render_progress_bar(frame, app, chunks[3]);
     }
@@ -56,15 +54,22 @@ impl MusicInfoDrawer {
         frame.render_widget(paragraph, area);
     }
 
+    fn render_picture(frame: &mut Frame, app: &mut App, area: Rect) {
+        let paragraph = Paragraph::new(app.theme.music_info_theme.picture)
+            .style(app.theme.music_info_theme.logo_style)
+            .alignment(ratatui::layout::Alignment::Center);
+        frame.render_widget(paragraph, area);
+    }
+
     fn render_text_info(frame: &mut Frame, app: &mut App, area: Rect) {
         let rows = vec![
-            Row::new(vec![Cell::from("  Name:"),     Cell::from(app.current_song_info.title.clone())]),
-            Row::new(vec![Cell::from("  Artist:"),   Cell::from(app.current_song_info.artist.clone())]),
-            Row::new(vec![Cell::from("  Album:"),    Cell::from(app.current_song_info.album.clone())]),
-            Row::new(vec![Cell::from("  Duration:"), Cell::from(utils::format_duration(app.current_song_info.duration))]),
-            Row::new(vec![Cell::from("  Time:"), Cell::from(utils::format_duration(app.get_current_position()))]),
+            Row::new(vec![Cell::from(Line::from("Name:").right_aligned()),     Cell::from(app.current_song_info.title.clone())]),
+            Row::new(vec![Cell::from(Line::from("Artist:").right_aligned()),   Cell::from(app.current_song_info.artist.clone())]),
+            Row::new(vec![Cell::from(Line::from("Album:").right_aligned()),    Cell::from(app.current_song_info.album.clone())]),
+            Row::new(vec![Cell::from(Line::from("Duration:").right_aligned()), Cell::from(utils::format_duration(app.current_song_info.duration))]),
+            Row::new(vec![Cell::from(Line::from("Time:").right_aligned()),     Cell::from(utils::format_duration(app.get_current_position()))]),
         ];
-        let widths = [Constraint::Length(11), Constraint::Min(10)];
+        let widths = [Constraint::Percentage(50), Constraint::Percentage(50)];
         let table = Table::new(rows, widths)
             .column_spacing(app.theme.music_info_theme.table_column_spacing)
             .style(app.theme.music_info_theme.table_cell_style);
@@ -72,16 +77,116 @@ impl MusicInfoDrawer {
     }
 
     fn render_progress_bar(frame: &mut Frame, app: &mut App, area: Rect) {
-        frame.render_widget(
-            LineGauge::default()
-                .filled_style(Style::new().white().on_black().bold())
-                .unfilled_symbol("·")
-                .filled_symbol("·")
-                .filled_style(Style::new().blue().on_black().bold())
-                .label(Line::raw(""))
-                .ratio(0.4), 
-            area
+        let mut state = if app.current_song_info.duration == 0.0 {
+            0.0
+        } else {
+            app.get_current_position() / app.current_song_info.duration
+        };
+
+        frame.render_stateful_widget(
+            ProgressBar::new(
+                app.theme.music_info_theme.progress_bar_filled_symbol,
+                app.theme.music_info_theme.progress_bar_unfilled_symbol,
+                app.theme.music_info_theme.progress_bar_head_symbol,
+                app.theme.music_info_theme.progress_bar_start_symbol,
+                app.theme.music_info_theme.progress_bar_end_symbol,
+                app.theme.music_info_theme.progress_bar_filled_style,
+                app.theme.music_info_theme.progress_bar_unfilled_style,
+                app.theme.music_info_theme.progress_bar_head_style,
+                0.05
+            ),
+            area, 
+            &mut state
         );
     }
+}
 
+struct ProgressBar {
+    filled_symbol: &'static str,
+    unfilled_symbol: &'static str,
+    head_symbol: &'static str,
+    start_symbol: &'static str,
+    end_symbol: &'static str,
+    filled_style: Style,
+    unfilled_style: Style,
+    head_style: Style,
+    one_side_blank_ratio: f64
+}
+
+impl ProgressBar {
+    pub fn new(
+        filled_symbol: &'static str,
+        unfilled_symbol: &'static str,
+        head_symbol: &'static str,
+        start_symbol: &'static str,
+        end_symbol: &'static str,
+        filled_style: Style,
+        unfilled_style: Style,
+        head_style: Style,
+        one_side_blank_ratio: f64
+    ) -> Self {
+        Self {
+            filled_symbol,
+            unfilled_symbol,
+            head_symbol,
+            start_symbol,
+            end_symbol,
+            filled_style,
+            unfilled_style,
+            head_style,
+            one_side_blank_ratio
+        }
+    }
+}
+
+impl StatefulWidget for ProgressBar {
+    type State = f64;
+    
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        if area.width <= 2 {
+            return;
+        }
+
+        let one_side_blank_length = (area.width as f64 * self.one_side_blank_ratio).floor() as u16;
+        let start_pos = area.left()  + one_side_blank_length;
+        let end_pos   = area.right() - one_side_blank_length - 1;
+
+        if end_pos < start_pos + 2 {
+            return;
+        }
+
+        let width = end_pos - start_pos - 1;
+        let ratio = state.clamp(0.0, 1.0);
+
+        let filled_len = ((width as f64 * ratio).floor() as u16).min(width - 1);
+        let head_pos = start_pos + filled_len + 1;
+
+        buf.cell_mut(Position::new(start_pos, area.top()))
+            .unwrap()
+            .set_symbol(self.start_symbol)
+            .set_style(self.unfilled_style);
+
+        for i in start_pos + 1 .. head_pos {
+            let cell = buf.cell_mut(Position::new(i, area.top())).unwrap();
+            cell.set_symbol(self.filled_symbol);
+            cell.set_style(self.filled_style);
+        }
+
+        buf.cell_mut(Position::new(head_pos, area.top()))
+            .unwrap()
+            .set_symbol(self.head_symbol)
+            .set_style(self.head_style);
+
+        for i in head_pos + 1 .. end_pos {
+            let cell = buf.cell_mut(Position::new(i, area.top())).unwrap();
+            cell.set_symbol(self.unfilled_symbol);
+            cell.set_style(self.unfilled_style);
+        }
+
+        buf.cell_mut(Position::new(end_pos, area.top()))
+            .unwrap()
+            .set_symbol(self.end_symbol)
+            .set_style(self.unfilled_style);
+
+    }
 }

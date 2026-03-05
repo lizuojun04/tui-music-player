@@ -89,7 +89,16 @@ pub struct MusicInfoTheme {
     pub table_cell_style: style::Style,
     pub table_column_spacing: u16,
     pub logo: &'static str,
-    pub logo_style: style::Style
+    pub logo_style: style::Style,
+    pub picture: &'static str,
+    pub progress_bar_filled_symbol: &'static str,
+    pub progress_bar_unfilled_symbol: &'static str,
+    pub progress_bar_head_symbol: &'static str,
+    pub progress_bar_start_symbol: &'static str,
+    pub progress_bar_end_symbol: &'static str,
+    pub progress_bar_filled_style: style::Style,
+    pub progress_bar_unfilled_style: style::Style,
+    pub progress_bar_head_style: style::Style
 }
 
 impl Default for MusicInfoTheme {
@@ -99,9 +108,10 @@ impl Default for MusicInfoTheme {
             music_info_border_type: BorderType::Rounded,
             music_info_border_style: style::Style::default().fg(const_colors::GREEN),
             table_cell_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
-            table_column_spacing: 2,
-            logo: 
-   r#" __           
+            table_column_spacing: 1,
+            logo: r#"
+
+       __                 
       /\ \__               
  _____\ \  _\   ________   
 /\  __ \ \ \/  / __  __ \  
@@ -110,7 +120,33 @@ impl Default for MusicInfoTheme {
   \ \ \/  \/__/\/_/\/_/\/_/
    \ \_\                  
     \/_/                   "#,
-            logo_style: style::Style::default().fg(const_colors::CYAN).bold()
+            logo_style: style::Style::default().fg(const_colors::CYAN).bold(),
+            picture : r#"
+
+
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⠀⢻⣿⣿⣿⣿⣿⣿⡿⠁⠀⠙⢿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⠇⠀⠀⠀⠈⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠿⠛⠛⠛⠛⠿⣿⠀⠀⠀⠀⢀⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⣀⣤⡀⠀⠀⠀⠀⣀⡀⠀⠀⠀⢀⠀⢸⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣴⣿⣿⠇⠀⠀⢠⣾⣿⣿⣆⠀⠀⠀⠀⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢡⣿⣿⣿⠀⠀⢀⣿⣿⣿⣿⣿⠀⠀⠀⢸⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⢸⣿⡿⠃⠀⠀⢸⣿⣿⣿⣿⠏⠀⠀⠀⡘⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠈⠀⠈⠭⠀⠈⠛⠿⠛⠋⠀⠀⠀⠀⠠⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡑⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠈⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡏⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠀⠀⠈⢃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿"#,
+            progress_bar_filled_symbol: "󰇼",
+            progress_bar_unfilled_symbol: "󰍴",
+            progress_bar_head_symbol: "",
+            progress_bar_start_symbol: "[",
+            progress_bar_end_symbol: "]",
+            progress_bar_filled_style: style::Style::default().fg(const_colors::CYAN),
+            progress_bar_unfilled_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
+            progress_bar_head_style: style::Style::default().fg(const_colors::CYAN).bold()
         }
     }
 }

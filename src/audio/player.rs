@@ -229,24 +229,28 @@ impl Player {
         where
             T: ringbuf::traits::Consumer<Item = f32> + Send + 'static 
     {
-        device.build_output_stream(stream_config, 
-                                   move |data, _| {
-                                       let is_playing = state.is_playing.load(Ordering::Relaxed);
-                                       let volume_multiplier = state.volume.load(Ordering::Relaxed) as f32 / 100.0;
-                                       state.played_samples.fetch_add(data.len() as u64, Ordering::Relaxed);
-                                       for sample in data.iter_mut() {
-                                           *sample = if is_playing {
-                                               consumer.try_pop().unwrap_or(0.0) * volume_multiplier
-                                           } else {
-                                               0.0
-                                           };
-                                       }
-                                   },
-                                   |err| {
-                                       panic!("Stream error: {:?}", err);
-                                   }, 
-                                   None)
-                                   .expect("Failed to build output stream")
+        device.build_output_stream(
+                 stream_config, 
+                move |data, _| {
+                    let is_playing = state.is_playing.load(Ordering::Relaxed);
+                    let volume_multiplier = state.volume.load(Ordering::Relaxed) as f32 / 100.0;
+                    if is_playing {
+                        state.played_samples.fetch_add(data.len() as u64, Ordering::Relaxed);
+                    }
+                    for sample in data.iter_mut() {
+                        *sample = if is_playing {
+                            consumer.try_pop().unwrap_or(0.0) * volume_multiplier
+                        } else {
+                            0.0
+                        };
+                    }
+                },
+                |err| {
+                    panic!("Stream error: {:?}", err);
+                }, 
+                None
+            )
+            .expect("Failed to build output stream")
     }
 
     fn spawn_decode_thread<T>(command_sender: Sender<PlayerCommand>, mut decoder: AudioDecoder, mut producer: T)  -> JoinHandle<()>
