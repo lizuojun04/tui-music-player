@@ -12,12 +12,13 @@ pub struct Theme {
 }
 
 pub struct PlaylistTheme {
-    pub table_cell_style: style::Style,
     pub table_header_style: style::Style,
     pub playlist_borders: Borders,
     pub playlist_border_type: BorderType,
     pub playlist_border_style: style::Style,
     pub table_column_spacing: u16,
+    pub table_row_style: style::Style,
+    pub table_row_selected_style: style::Style,
     pub table_row_highlight_style: style::Style,
     pub table_highlight_symbol: &'static str,
     pub table_style: style::Style,
@@ -34,12 +35,16 @@ pub struct PlaylistTheme {
 impl Default for PlaylistTheme {
     fn default() -> Self {
         Self {
-            table_cell_style: style::Style::default(),
             table_header_style: style::Style::default().fg(const_colors::GRAY_BLUE).bold(),
             playlist_borders: Borders::ALL,
             playlist_border_type: BorderType::Rounded,
             playlist_border_style: style::Style::default().fg(const_colors::LIGHT_BLUE),
             table_column_spacing: 2,
+            table_row_style: style::Style::default(),
+            table_row_selected_style: style::Style::default()
+                .bg(const_colors::LIGHT_GRAY_BLUE)
+                .fg(const_colors::BLUE)
+                .bold(),
             table_row_highlight_style: style::Style::default()
                 .bg(const_colors::LIGHT_GRAY)
                 .fg(const_colors::GREEN)
@@ -50,7 +55,7 @@ impl Default for PlaylistTheme {
             scrollbar_track_symbol: "󱪼",
             scrollbar_track_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             scrollbar_thumb_symbol: "󱪽",
-            scrollbar_thumb_style: style::Style::default().fg(const_colors::BLUE),
+            scrollbar_thumb_style: style::Style::default().fg(const_colors::DEEP_BLUE),
             scrollbar_end_symbol: "",
             // scrollbar_style: style::Style::default(),
             item_height: 1
@@ -73,10 +78,10 @@ impl Default for FileBrowserTheme {
         Self {
             file_browser_borders: Borders::ALL,
             file_browser_border_type: BorderType::Rounded,
-            file_browser_border_style: style::Style::default().fg(const_colors::BLUE),
+            file_browser_border_style: style::Style::default().fg(const_colors::DEEP_BLUE),
             list_file_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
-            list_directory_style: style::Style::default().fg(const_colors::BLUE).bold(),
-            list_highlight_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::CYAN).bold(),
+            list_directory_style: style::Style::default().fg(const_colors::DEEP_BLUE).bold(),
+            list_highlight_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::LI_LI_BLUE).bold(),
             list_highlight_symbol: " "
         }
     }
@@ -106,12 +111,10 @@ impl Default for MusicInfoTheme {
         Self {
             music_info_borders: Borders::ALL,
             music_info_border_type: BorderType::Rounded,
-            music_info_border_style: style::Style::default().fg(const_colors::GREEN),
+            music_info_border_style: style::Style::default().fg(const_colors::DARK_GREEN),
             table_cell_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             table_column_spacing: 1,
-            logo: r#"
-
-       __                 
+            logo: r#"       __                 
       /\ \__               
  _____\ \  _\   ________   
 /\  __ \ \ \/  / __  __ \  
@@ -121,10 +124,7 @@ impl Default for MusicInfoTheme {
    \ \_\                  
     \/_/                   "#,
             logo_style: style::Style::default().fg(const_colors::CYAN).bold(),
-            picture : r#"
-
-
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+            picture : r#"⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⠀⢻⣿⣿⣿⣿⣿⣿⡿⠁⠀⠙⢿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⣾⣿⣿⣿⣿⣿⣿⠇⠀⠀⠀⠈⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠿⠛⠛⠛⠛⠿⣿⠀⠀⠀⠀⢀⣿⣿
@@ -154,13 +154,16 @@ impl Default for MusicInfoTheme {
 pub mod const_colors {
     use super::Color;
     
-    pub const CYAN           : Color = Color::Rgb( 25, 225, 235);
-    pub const LIGHT_BLUE     : Color = Color::Rgb( 58, 157, 214);
-    pub const BLUE           : Color = Color::Rgb(  7, 129, 229);
-    pub const GREEN          : Color = Color::Rgb( 21, 194, 146);
-    pub const DARK_GREEN     : Color = Color::Rgb( 20, 150, 100);
-    pub const GRAY_BLUE      : Color = Color::Rgb(150, 180, 250);
-    pub const LIGHT_GRAY     : Color = Color::Rgb( 20,  30,  30);
-    pub const DARK_GRAY      : Color = Color::Rgb(120, 120, 120);
-    pub const DARK_GRAY_BLUE : Color = Color::Rgb( 90, 110, 150);
+    pub const CYAN            : Color = Color::Rgb( 25, 225, 235);
+    pub const LIGHT_BLUE      : Color = Color::Rgb( 58, 157, 214);
+    pub const BLUE            : Color = Color::Rgb( 32, 173, 199);
+    pub const DEEP_BLUE       : Color = Color::Rgb(  7, 129, 229);
+    pub const LI_LI_BLUE      : Color = Color::Rgb( 42, 192, 213);
+    pub const GREEN           : Color = Color::Rgb( 21, 194, 146);
+    pub const DARK_GREEN      : Color = Color::Rgb( 20, 150, 100);
+    pub const GRAY_BLUE       : Color = Color::Rgb(150, 180, 250);
+    pub const LIGHT_GRAY      : Color = Color::Rgb( 20,  30,  30);
+    pub const LIGHT_GRAY_BLUE : Color = Color::Rgb( 15,  25,  30);
+    pub const DARK_GRAY       : Color = Color::Rgb(120, 120, 120);
+    pub const DARK_GRAY_BLUE  : Color = Color::Rgb( 90, 110, 150);
 }

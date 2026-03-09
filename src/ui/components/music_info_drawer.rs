@@ -1,6 +1,6 @@
 use crate::{
     ui::ui::Drawable,
-    app::app::App,
+    app::app::{App, PlayOrder},
     utils::utils
 };
 
@@ -22,16 +22,20 @@ impl Drawable for MusicInfoDrawer {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
+                Constraint::Min(1),
                 Constraint::Min(12),
-                Constraint::Percentage(100),
+                Constraint::Min(14),
+                Constraint::Min(2),
                 Constraint::Min(7),
-                Constraint::Min(4)
+                Constraint::Min(1),
+                Constraint::Min(3)
             ])
             .split(Self::render_block_with_border(frame, app, area));
-        Self::render_logo(frame, app, chunks[0]);
-        Self::render_picture(frame, app, chunks[1]);
-        Self::render_text_info(frame, app, chunks[2]);
-        Self::render_progress_bar(frame, app, chunks[3]);
+        Self::render_logo(frame, app,         chunks[1]);
+        Self::render_picture(frame, app,      chunks[2]);
+        Self::render_text_info(frame, app,    chunks[4]);
+        Self::render_status(frame, app,       chunks[5]);
+        Self::render_progress_bar(frame, app, chunks[6]);
     }
 }
 
@@ -63,17 +67,30 @@ impl MusicInfoDrawer {
 
     fn render_text_info(frame: &mut Frame, app: &mut App, area: Rect) {
         let rows = vec![
-            Row::new(vec![Cell::from(Line::from("Name:").right_aligned()),     Cell::from(app.current_song_info.title.clone())]),
-            Row::new(vec![Cell::from(Line::from("Artist:").right_aligned()),   Cell::from(app.current_song_info.artist.clone())]),
-            Row::new(vec![Cell::from(Line::from("Album:").right_aligned()),    Cell::from(app.current_song_info.album.clone())]),
-            Row::new(vec![Cell::from(Line::from("Duration:").right_aligned()), Cell::from(utils::format_duration(app.current_song_info.duration))]),
-            Row::new(vec![Cell::from(Line::from("Time:").right_aligned()),     Cell::from(utils::format_duration(app.get_current_position()))]),
+            Row::new(vec![Cell::from(Line::from("Name").right_aligned()),     Cell::from(":"), Cell::from(app.current_song_info.title.clone())]),
+            Row::new(vec![Cell::from(Line::from("Artist").right_aligned()),   Cell::from(":"), Cell::from(app.current_song_info.artist.clone())]),
+            Row::new(vec![Cell::from(Line::from("Album").right_aligned()),    Cell::from(":"), Cell::from(app.current_song_info.album.clone())]),
+            Row::new(vec![Cell::from(Line::from("Duration").right_aligned()), Cell::from(":"), Cell::from(utils::format_duration(app.current_song_info.duration))]),
         ];
-        let widths = [Constraint::Percentage(50), Constraint::Percentage(50)];
+        let widths = [Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)];
         let table = Table::new(rows, widths)
             .column_spacing(app.theme.music_info_theme.table_column_spacing)
             .style(app.theme.music_info_theme.table_cell_style);
         frame.render_widget(table, area);
+    }
+
+    fn render_status(frame: &mut Frame, app: &mut App, area: Rect) {
+        let play_order_symbol = match app.play_order {
+            PlayOrder::Sequential => "",
+            PlayOrder::Shuffle => ""
+        };
+        let play_status_symbol = if app.is_playing() {
+            ""
+        } else {
+            ""
+        };
+        let text = format!("{} {} {}", play_order_symbol, utils::format_duration(app.get_current_position()), play_status_symbol);
+        frame.render_widget(Paragraph::new(text).centered(), area);
     }
 
     fn render_progress_bar(frame: &mut Frame, app: &mut App, area: Rect) {

@@ -52,13 +52,20 @@ impl PlaylistDrawer {
         inner_area
     }
     fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
-        let rows = app.playlist.items.iter().map(|item| {
-            let style = app.theme.playlist_theme.table_cell_style;
+        let rows = app.playlist.items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+            let style = if Some(index) == app.current_playing_song_index {
+                app.theme.playlist_theme.table_row_selected_style
+            } else {
+                app.theme.playlist_theme.table_row_style
+            };
             Row::new(vec![
-                Cell::from(item.get_name()).style(style),
-                Cell::from(item.get_artist()).style(style),
-                Cell::from(item.get_work()).style(style)
-            ])
+                Cell::from(item.get_name()),
+                Cell::from(item.get_artist()),
+                Cell::from(item.get_work())
+            ]).style(style)
         }).collect::<Vec<_>>();
         let widths = [Constraint::Percentage(50), Constraint::Percentage(25), Constraint::Percentage(25)];
         let header_style = app.theme.playlist_theme.table_header_style;

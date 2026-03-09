@@ -19,7 +19,7 @@ use ratatui::{
     widgets::{ListState, ScrollbarState, TableState}, 
     Terminal,
 };
-
+use rand::RngExt;
 use std::io;
 
 pub struct CurrentSongInfo {
@@ -49,6 +49,11 @@ impl Default for CurrentSongInfo {
     }
 }
 
+pub enum PlayOrder {
+    Sequential,
+    Shuffle
+}
+
 enum CurrentScreen {
     MainScreen,
     FileBrowser,
@@ -76,7 +81,7 @@ pub struct App {
     pub current_playing_song_index: Option<usize>,
 
     pub file_browser: FileBrowser,
-    file_browser_parent_index: Option<usize>,
+    file_browser_parent_index: usize,
     pub file_browser_list_state: ListState,
 
     pub playlist: Playlist,
@@ -86,6 +91,8 @@ pub struct App {
     pub current_song_info: CurrentSongInfo,
 
     pub theme: theme::Theme,
+
+    pub play_order: PlayOrder,
 
     need_redraw: bool
 }
@@ -110,13 +117,14 @@ impl App {
             current_path: root_dir,
             current_playing_song_index: None,
             file_browser,
-            file_browser_parent_index: None,
+            file_browser_parent_index: 0,
             file_browser_list_state,
             playlist,
             playlist_scroll_state,
             playlist_table_state,
             current_song_info: CurrentSongInfo::default(),
             theme,
+            play_order: PlayOrder::Sequential,
             need_redraw: true
         }
     }
@@ -147,6 +155,7 @@ impl App {
                                 crossterm::event::KeyCode::Char('l') => self.play_next_song(),
                                 crossterm::event::KeyCode::Char('h') => self.play_previous_song(),
                                 crossterm::event::KeyCode::Char('f') => self.switch_to(ActiveBlock::FileBrowserBlock),
+                                crossterm::event::KeyCode::Tab => self.toggle_play_order(),
                                 _ => {}
                             }
                         },
@@ -186,38 +195,72 @@ impl App {
         self.need_redraw = true;
     }
 
+    fn toggle_play_order(&mut self) {
+        self.play_order = match self.play_order {
+            PlayOrder::Sequential => PlayOrder::Shuffle,
+            PlayOrder::Shuffle => PlayOrder::Sequential
+        };
+        self.need_redraw = true;
+    }
+
     fn play_next_song(&mut self) {
-        match self.current_playing_song_index {
-            Some(index) => {
-                if index >= self.playlist.items.len() - 1 {
-                    self.current_playing_song_index = Some(0);
-                } else {
-                    self.current_playing_song_index = Some(index + 1);
-                }
-            }
-            None => {
-                self.current_playing_song_index = Some(0);
-            }
-        }
-        self.player.load(self.playlist.items[self.current_playing_song_index.unwrap()].get_file_path().clone());
+        let index = self.get_next_index();
+        self.player.load(self.playlist.items[index].get_file_path().clone());
+        self.current_playing_song_index = Some(index);
         self.need_redraw = true;
     }
 
     fn play_previous_song(&mut self) {
-        match self.current_playing_song_index {
-            Some(index) => {
-                if index == 0 {
-                    self.current_playing_song_index = Some(self.playlist.items.len() - 1);
-                } else {
-                    self.current_playing_song_index = Some(index - 1);
+        let index = self.current_playing_song_index.unwrap();
+        self.player.load(self.playlist.items[index].get_file_path().clone());
+        self.current_playing_song_index = Some(index);
+        self.need_redraw = true;
+    }
+
+    fn get_next_index(&self) -> usize {
+        match self.play_order {
+            PlayOrder::Sequential => {
+                match self.current_playing_song_index {
+                    Some(index) => {
+                        if index >= self.playlist.items.len() - 1 {
+                            0
+                        } else {
+                            index + 1
+                        }
+                    }
+                    None => {
+                        0
+                    }
                 }
-            }
-            None => {
-                self.current_playing_song_index = Some(0);
+            },
+            PlayOrder::Shuffle => {
+                let mut rng = rand::rng();
+                rng.random_range(0..self.playlist.items.len())
             }
         }
-        self.player.load(self.playlist.items[self.current_playing_song_index.unwrap()].get_file_path().clone());
-        self.need_redraw = true;
+    }
+
+    fn get_previous_index(&self) -> usize {
+        match self.play_order {
+            PlayOrder::Sequential => {
+                match self.current_playing_song_index {
+                    Some(index) => {
+                        if index == 0 {
+                            self.playlist.items.len() - 1
+                        } else {
+                            index - 1
+                        }
+                    }
+                    None => {
+                        0
+                    }
+                }
+            },
+            PlayOrder::Shuffle => {
+                let mut rng = rand::rng();
+                rng.random_range(0..self.playlist.items.len())
+            }
+        }
     }
 
     fn previous_playlist_item(&mut self) {
@@ -301,7 +344,7 @@ impl App {
 
     fn enter_directory(&mut self) {
         if let Some(selected) = self.file_browser_list_state.selected() {
-            self.file_browser_parent_index = Some(selected);
+            self.file_browser_parent_index = selected;
             let selected_path = self.file_browser.items[selected].get_file_path();
             if selected_path.is_dir() {
                 self.current_path = selected_path.clone();
@@ -316,7 +359,7 @@ impl App {
         if let Some(parent_path) = self.current_path.parent() {
             self.current_path = parent_path.to_path_buf();
             self.file_browser = FileBrowser::from_paths(FileManager::get_entry_list_static(self.current_path.clone()));
-            self.file_browser_list_state.select(self.file_browser_parent_index);
+            self.file_browser_list_state.select(Some(self.file_browser_parent_index));
         }
         self.need_redraw = true;
     }
@@ -332,6 +375,10 @@ impl App {
 
     pub fn get_current_position(&self) -> f64 {
         self.player.get_current_position()
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.player.state.is_playing.load(Ordering::Relaxed)
     }
 
 }
