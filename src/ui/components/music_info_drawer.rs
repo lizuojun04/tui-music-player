@@ -5,11 +5,11 @@ use crate::{
 };
 
 use ratatui::{
-    buffer::{Buffer, Cell as BufferCell},
+    buffer::{Buffer},
     layout::{Constraint, Direction, Layout, Position, Rect},
-    style::{palette::tailwind, Color, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Cell, Clear, LineGauge, List, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Table, Wrap}, 
+    style::{Style},
+    text::{Line},
+    widgets::{Block, Cell, Paragraph, Row, StatefulWidget, Table}, 
     Frame
 };
 
@@ -81,16 +81,47 @@ impl MusicInfoDrawer {
 
     fn render_status(frame: &mut Frame, app: &mut App, area: Rect) {
         let play_order_symbol = match app.play_order {
-            PlayOrder::Sequential => "",
-            PlayOrder::Shuffle => ""
+            PlayOrder::Sequential => app.theme.music_info_theme.play_order_sequential_symbol,
+            PlayOrder::Shuffle => app.theme.music_info_theme.play_order_shuffle_symbol
         };
         let play_status_symbol = if app.is_playing() {
-            ""
+            app.theme.music_info_theme.play_status_playing_symbol
         } else {
-            ""
+            app.theme.music_info_theme.play_status_pause_symbol
         };
-        let text = format!("{} {} {}", play_order_symbol, utils::format_duration(app.get_current_position()), play_status_symbol);
-        frame.render_widget(Paragraph::new(text).centered(), area);
+
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage((0.05 * 100.0) as u16),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Percentage((0.05 * 100.0) as u16),
+            ])
+            .split(area);
+
+        frame.render_widget(
+            Line::from(utils::format_duration(app.get_current_position()))
+                .left_aligned()
+                .style(app.theme.music_info_theme.play_status_style), 
+            chunks[1]
+        );
+
+        frame.render_widget(
+            Line::from(format!("{} {}", play_order_symbol, play_status_symbol))
+                .centered()
+                .style(app.theme.music_info_theme.play_status_style), 
+            chunks[2]
+        );
+
+        frame.render_widget(
+            Line::from(format!("{} {}%", app.theme.music_info_theme.play_status_volume_symbol, app.get_volume()))
+                .right_aligned()
+                .style(app.theme.music_info_theme.play_status_style), 
+            chunks[3]
+        );
+
     }
 
     fn render_progress_bar(frame: &mut Frame, app: &mut App, area: Rect) {

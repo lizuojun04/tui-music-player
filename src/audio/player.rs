@@ -12,8 +12,12 @@ use crate::{
     app::event::{MainEvent, PlayerEvent }
 };
 use std::{
-    path::PathBuf, sync::{
-        atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, Ordering}, Arc}, thread::{self, JoinHandle}
+    path::PathBuf, 
+    sync::{
+        atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, Ordering}, 
+        Arc
+    }, 
+    thread::{self, JoinHandle}
 };
 
 
@@ -23,7 +27,7 @@ pub enum PlayerCommand {
     Pause,          // Pause playback
     Seek(u64),      // Seek to a specific position
     Stop,           // Stop playback
-    SetVolume(f32),  // Set volume
+    SetVolume(u32),  // Set volume
     SendFinishedEvent
 }
 
@@ -90,7 +94,7 @@ impl Player {
         self.command_sender.send(PlayerCommand::Stop).expect("Failed to send Stop command");
     }
 
-    pub fn set_volume(&self, volume: f32) {
+    pub fn set_volume(&self, volume: u32) {
         self.command_sender.send(PlayerCommand::SetVolume(volume)).expect("Failed to send SetVolume command");
     }
 
@@ -144,12 +148,12 @@ impl Player {
         Self::load_and_play_at(command_sender, Some(event_sender), path, None, stream, decode_thread, device, state);
     }
 
-    fn process_set_volume(volume: f32, state: Arc<PlaybackState>) {
-        if !(0.0..=100.0).contains(&volume) {
+    fn process_set_volume(volume: u32, state: Arc<PlaybackState>) {
+        if !(0..=100).contains(&volume) {
             eprintln!("Volume must be between 0 and 100");
             return;
         }
-        state.volume.store(volume as u32, Ordering::Relaxed);
+        state.volume.store(volume, Ordering::Relaxed);
     }
 
     fn process_play(state: Arc<PlaybackState>) {
@@ -176,7 +180,7 @@ impl Player {
         *stream = None;
         *decode_thread = None;
 
-        let mut new_decoder = AudioDecoder::new(path);
+        let mut new_decoder = AudioDecoder::new(path.clone());
         match position_secs {
             Some(pos) => {
                 if !new_decoder.seek(pos) {
@@ -190,7 +194,7 @@ impl Player {
         }
 
         if let Some(event_sender) = event_sender {
-             event_sender.send(MainEvent::Player(PlayerEvent::SongInfo(new_decoder.get_song_info()))).expect("Failed to send SongInfo event");
+             event_sender.send(MainEvent::Player(PlayerEvent::SongInfo(new_decoder.get_song_info(&path)))).expect("Failed to send SongInfo event");
         }
         let sample_rate = new_decoder.get_sample_rate();
         let channels = new_decoder.get_channels();

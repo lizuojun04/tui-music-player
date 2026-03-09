@@ -8,9 +8,11 @@ use symphonia::core::{
     meta,
 };
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     fs::File
 };
+use crate::utils::utils;
+
 
 pub struct AudioDecoder {
     format_reader: Box<dyn FormatReader>,
@@ -67,11 +69,9 @@ impl AudioDecoder {
 
     }
 
-    pub fn get_song_info(&mut self) -> (String, String, String, f64) {
-
-        let mut title = "Unknown Title".to_string();
-        let mut artist = "Unknown Artist".to_string();
-        let mut album = "Unknown Album".to_string();
+    pub fn get_song_info(&mut self, file_path: &Path) -> (String, String, String, f64) {
+        let file_name = file_path.file_name().and_then(|s| s.to_str()).unwrap_or("Unknown").to_string();
+        let (mut title, mut artist, mut album) = utils::parse_file_name(&file_name);
 
         if let Some(metadata) = self.format_reader.metadata().current() {
             for tag in metadata.tags() {

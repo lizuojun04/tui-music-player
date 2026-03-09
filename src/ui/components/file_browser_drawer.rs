@@ -3,10 +3,9 @@ use crate::app::{
     app::App
 };
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Margin, Rect},
-    style::{Color, palette::tailwind, Style},
-    text::{Line, Span, Text},
-    widgets::{Cell, Block, Borders, BorderType, Clear, List, ListItem, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, Wrap}, 
+    layout::{Rect},
+    text::{Line},
+    widgets::{Block, List, ListItem}, 
     Frame
 };
 

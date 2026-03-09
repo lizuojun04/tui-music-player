@@ -1,4 +1,4 @@
-use std::{fs::DirEntry, path::PathBuf};
+use std::{path::PathBuf};
 use walkdir::WalkDir;
 
 pub struct FileManager {

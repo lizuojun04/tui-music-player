@@ -1,7 +1,7 @@
 use ratatui::widgets::{Borders, BorderType};
 
 use ratatui::{
-    style::{self, Color, palette::tailwind}
+    style::{self, Color}
 };
 
 #[derive(Default)]
@@ -96,6 +96,12 @@ pub struct MusicInfoTheme {
     pub logo: &'static str,
     pub logo_style: style::Style,
     pub picture: &'static str,
+    pub play_order_sequential_symbol: &'static str,
+    pub play_order_shuffle_symbol: &'static str,
+    pub play_status_playing_symbol: &'static str,
+    pub play_status_pause_symbol: &'static str,
+    pub play_status_volume_symbol: &'static str,
+    pub play_status_style: style::Style,
     pub progress_bar_filled_symbol: &'static str,
     pub progress_bar_unfilled_symbol: &'static str,
     pub progress_bar_head_symbol: &'static str,
@@ -139,7 +145,13 @@ impl Default for MusicInfoTheme {
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠀⠀⠈⢃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿"#,
-            progress_bar_filled_symbol: "󰇼",
+            play_order_sequential_symbol: "",
+            play_order_shuffle_symbol: "",
+            play_status_playing_symbol: "",
+            play_status_pause_symbol: "",
+            play_status_volume_symbol: "󰕾",
+            play_status_style: style::Style::default().fg(const_colors::GREEN).bold(),
+            progress_bar_filled_symbol: "󰍴", // 󰇼
             progress_bar_unfilled_symbol: "󰍴",
             progress_bar_head_symbol: "",
             progress_bar_start_symbol: "[",

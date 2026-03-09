@@ -11,11 +11,11 @@ use crate::{
 };
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}, time::Duration
+    sync::atomic::{Ordering}, time::Duration
 };
 use crossbeam_channel::{unbounded, RecvTimeoutError};
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
+    backend::{Backend},
     widgets::{ListState, ScrollbarState, TableState}, 
     Terminal,
 };
@@ -156,6 +156,8 @@ impl App {
                                 crossterm::event::KeyCode::Char('h') => self.play_previous_song(),
                                 crossterm::event::KeyCode::Char('f') => self.switch_to(ActiveBlock::FileBrowserBlock),
                                 crossterm::event::KeyCode::Tab => self.toggle_play_order(),
+                                crossterm::event::KeyCode::Char('i') => self.increase_volume(),
+                                crossterm::event::KeyCode::Char('u') => self.decrease_volume(),
                                 _ => {}
                             }
                         },
@@ -211,7 +213,7 @@ impl App {
     }
 
     fn play_previous_song(&mut self) {
-        let index = self.current_playing_song_index.unwrap();
+        let index = self.get_previous_index();
         self.player.load(self.playlist.items[index].get_file_path().clone());
         self.current_playing_song_index = Some(index);
         self.need_redraw = true;
@@ -381,4 +383,23 @@ impl App {
         self.player.state.is_playing.load(Ordering::Relaxed)
     }
 
+    pub fn increase_volume(&mut self) {
+        let volume = self.player.state.volume.load(Ordering::Relaxed);
+        if volume < 100 {
+            self.player.set_volume(volume + 1);
+            self.need_redraw = true;
+        }
+    }
+
+    pub fn decrease_volume(&mut self) {
+        let volume = self.player.state.volume.load(Ordering::Relaxed);
+        if volume > 0 {
+            self.player.set_volume(volume - 1);
+            self.need_redraw = true;
+        }
+    }
+
+    pub fn get_volume(&self) -> u32 {
+        self.player.state.volume.load(Ordering::Relaxed)
+    }
 }
