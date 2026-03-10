@@ -370,7 +370,7 @@ impl App {
     fn set_pwd_as_playlist(&mut self) {
         self.playlist = Playlist::from_paths(FileManager::get_file_path_list_static(self.current_path.clone()));
         self.playlist_table_state.select(Some(0));
-        self.playlist_scroll_state = self.playlist_scroll_state.position(0);
+        self.playlist_scroll_state = self.playlist_scroll_state.content_length(self.playlist.items.len() * self.theme.playlist_theme.item_height);
         self.current_playing_song_index = None;
         self.need_redraw = true;
     }

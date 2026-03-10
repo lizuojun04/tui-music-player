@@ -93,16 +93,16 @@ impl MusicInfoDrawer {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage((0.05 * 100.0) as u16),
+                Constraint::Percentage((0.04 * 100.0) as u16),
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(1, 3),
-                Constraint::Percentage((0.05 * 100.0) as u16),
+                Constraint::Percentage((0.04 * 100.0) as u16),
             ])
             .split(area);
 
         frame.render_widget(
-            Line::from(utils::format_duration(app.get_current_position()))
+            Line::from(format!(" {}", utils::format_duration(app.get_current_position())))
                 .left_aligned()
                 .style(app.theme.music_info_theme.play_status_style), 
             chunks[1]
@@ -116,7 +116,7 @@ impl MusicInfoDrawer {
         );
 
         frame.render_widget(
-            Line::from(format!("{} {}%", app.theme.music_info_theme.play_status_volume_symbol, app.get_volume()))
+            Line::from(format!("{} {}% ", app.theme.music_info_theme.play_status_volume_symbol, app.get_volume()))
                 .right_aligned()
                 .style(app.theme.music_info_theme.play_status_style), 
             chunks[3]
@@ -131,6 +131,15 @@ impl MusicInfoDrawer {
             app.get_current_position() / app.current_song_info.duration
         };
 
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage((0.04 * 100.0) as u16),
+                Constraint::Fill(1),
+                Constraint::Percentage((0.04 * 100.0) as u16),
+            ])
+            .split(area);
+
         frame.render_stateful_widget(
             ProgressBar::new(
                 app.theme.music_info_theme.progress_bar_filled_symbol,
@@ -140,10 +149,9 @@ impl MusicInfoDrawer {
                 app.theme.music_info_theme.progress_bar_end_symbol,
                 app.theme.music_info_theme.progress_bar_filled_style,
                 app.theme.music_info_theme.progress_bar_unfilled_style,
-                app.theme.music_info_theme.progress_bar_head_style,
-                0.05
+                app.theme.music_info_theme.progress_bar_head_style
             ),
-            area, 
+            chunks[1], 
             &mut state
         );
     }
@@ -157,8 +165,7 @@ struct ProgressBar {
     end_symbol: &'static str,
     filled_style: Style,
     unfilled_style: Style,
-    head_style: Style,
-    one_side_blank_ratio: f64
+    head_style: Style
 }
 
 impl ProgressBar {
@@ -170,8 +177,7 @@ impl ProgressBar {
         end_symbol: &'static str,
         filled_style: Style,
         unfilled_style: Style,
-        head_style: Style,
-        one_side_blank_ratio: f64
+        head_style: Style
     ) -> Self {
         Self {
             filled_symbol,
@@ -181,8 +187,7 @@ impl ProgressBar {
             end_symbol,
             filled_style,
             unfilled_style,
-            head_style,
-            one_side_blank_ratio
+            head_style
         }
     }
 }
@@ -195,9 +200,8 @@ impl StatefulWidget for ProgressBar {
             return;
         }
 
-        let one_side_blank_length = (area.width as f64 * self.one_side_blank_ratio).floor() as u16;
-        let start_pos = area.left()  + one_side_blank_length;
-        let end_pos   = area.right() - one_side_blank_length - 1;
+        let start_pos = area.left();
+        let end_pos   = area.right() - 1;
 
         if end_pos < start_pos + 2 {
             return;

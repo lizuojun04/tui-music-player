@@ -39,6 +39,7 @@ $ ./target/release/tui-music-player
   - `<space>` 暂停/播放
   - `<Tab>` 顺序/随机播放
   - `u` `i` 调节音量
+  - `;` 播放歌曲
 
 #### BUG
 
@@ -48,6 +49,8 @@ $ ./target/release/tui-music-player
   需要开新的线程
   通过 `cargo build -r` 生成的二进制文件的 cpu 利用率变为了 0.0
 - [ ] mp4 文件无法解析出帧数
+- [ ] 在 home 目录打开，会很卡，我猜测是因为文件数目过多，导致在生成 play list 的时候需要耗费很多时间
+- [x] 在切换 play list 之后，似乎 scroll bar 的长度没有更新
 
 #### TODO
 
