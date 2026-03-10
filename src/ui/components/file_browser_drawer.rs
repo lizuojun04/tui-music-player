@@ -1,6 +1,7 @@
-use crate::ui::ui::Drawable;
-use crate::app::{
-    app::App
+use crate::{
+    app::app::App,
+    ui::ui::Drawable,
+    utils::utils
 };
 use ratatui::{
     layout::{Rect},
@@ -24,7 +25,7 @@ impl FileBrowserDrawer {
         let block = Block::default()
             .borders(app.theme.file_browser_theme.file_browser_borders)
             .title(Line::from("File Browser").left_aligned())
-            .title_bottom(Line::from(app.current_path.to_str().unwrap_or("")).right_aligned())
+            .title_bottom(Line::from(utils::format_path_for_display(&app.current_path)).right_aligned())
             .border_type(app.theme.file_browser_theme.file_browser_border_type)
             .border_style(app.theme.file_browser_theme.file_browser_border_style);
         let inner_area = block.inner(area);
