@@ -60,11 +60,13 @@ enum CurrentScreen {
     MusciPlayer,
 }
 
-enum ActiveBlock {
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum ActiveBlock {
     FileBrowserBlock,
     PlaylistBlock,
-    SearchSongBlock,
-    SearchArtistBlock
+    FilterNameBlock,
+    FilterArtistBlock,
+    FilterWorkBlock
 }
 
 /// use to manage all states of the app, 
@@ -72,7 +74,8 @@ enum ActiveBlock {
 /// all ui module are no-state
 pub struct App {
     player: Player,
-    activate_block: ActiveBlock,
+
+    pub activate_block: ActiveBlock,
 
     pub event_sender: crossbeam_channel::Sender<MainEvent>,
     event_receiver: crossbeam_channel::Receiver<MainEvent>,
@@ -94,6 +97,12 @@ pub struct App {
 
     pub play_order: PlayOrder,
 
+    pub filter_name_string: String,
+    pub filter_artist_string: String,
+    pub filter_work_string: String,
+
+    pub filtered_playlist_indices: Vec<usize>,
+
     need_redraw: bool
 }
 
@@ -108,6 +117,7 @@ impl App {
         let playlist = Playlist::from_paths(FileManager::get_file_path_list_static(root_dir.clone()));
         let playlist_scroll_state = ScrollbarState::new(playlist.items.len() * theme.playlist_theme.item_height);
         let playlist_table_state = TableState::new().with_selected(Some(0));
+        let filtered_playlist_indices = (0..playlist.items.len()).collect();
 
         Self {
             player: Player::new(event_sender.clone()),
@@ -125,6 +135,10 @@ impl App {
             current_song_info: CurrentSongInfo::default(),
             theme,
             play_order: PlayOrder::Sequential,
+            filter_name_string: String::new(),
+            filter_artist_string: String::new(),
+            filter_work_string: String::new(),
+            filtered_playlist_indices,
             need_redraw: true
         }
     }
@@ -155,7 +169,8 @@ impl App {
                                 crossterm::event::KeyCode::Char('l') => self.play_next_song(),
                                 crossterm::event::KeyCode::Char('h') => self.play_previous_song(),
                                 crossterm::event::KeyCode::Char('f') => self.switch_to(ActiveBlock::FileBrowserBlock),
-                                crossterm::event::KeyCode::Tab => self.toggle_play_order(),
+                                crossterm::event::KeyCode::Char('/') => self.switch_to(ActiveBlock::FilterNameBlock),
+                                crossterm::event::KeyCode::Tab       => self.toggle_play_order(),
                                 crossterm::event::KeyCode::Char('i') => self.increase_volume(),
                                 crossterm::event::KeyCode::Char('u') => self.decrease_volume(),
                                 _ => {}
@@ -169,7 +184,17 @@ impl App {
                                 crossterm::event::KeyCode::Char('h') => self.parent_directory(),
                                 crossterm::event::KeyCode::Char('l') => self.enter_directory(),
                                 crossterm::event::KeyCode::Char('p') => self.switch_to(ActiveBlock::PlaylistBlock),
+                                crossterm::event::KeyCode::Char('/') => self.switch_to(ActiveBlock::FilterNameBlock),
                                 crossterm::event::KeyCode::Char('s') => self.set_pwd_as_playlist(),
+                                _ => {}
+                            }
+                        },
+                        ActiveBlock::FilterNameBlock | ActiveBlock::FilterArtistBlock | ActiveBlock::FilterWorkBlock => {
+                            match key.code {
+                                crossterm::event::KeyCode::Enter => self.switch_to(ActiveBlock::PlaylistBlock),
+                                crossterm::event::KeyCode::Tab => self.toggle_filter_block(),
+                                crossterm::event::KeyCode::Char(value) => self.push_string_input(value),
+                                crossterm::event::KeyCode::Backspace => self.pop_string_input(),
                                 _ => {}
                             }
                         },
@@ -197,6 +222,44 @@ impl App {
         self.need_redraw = true;
     }
 
+    fn toggle_filter_block(&mut self) {
+        self.activate_block = match &self.activate_block {
+            ActiveBlock::FilterNameBlock => ActiveBlock::FilterArtistBlock,
+            ActiveBlock::FilterArtistBlock => ActiveBlock::FilterWorkBlock,
+            ActiveBlock::FilterWorkBlock => ActiveBlock::FilterNameBlock,
+            other => *other
+        };
+        self.need_redraw = true;
+    }
+
+    fn push_string_input(&mut self, value: char) {
+        match self.activate_block {
+            ActiveBlock::FilterNameBlock => self.filter_name_string.push(value),
+            ActiveBlock::FilterArtistBlock => self.filter_artist_string.push(value),
+            ActiveBlock::FilterWorkBlock => self.filter_work_string.push(value),
+            _ => {}
+        }
+        self.apply_filter();
+        self.playlist_scroll_state = self.playlist_scroll_state.content_length(self.filtered_playlist_indices.len() * self.theme.playlist_theme.item_height);
+        self.current_playing_song_index = None;
+        self.playlist_table_state.select(Some(0));
+        self.need_redraw = true;
+    }
+
+    fn pop_string_input(&mut self) {
+        match self.activate_block {
+            ActiveBlock::FilterNameBlock => { self.filter_name_string.pop(); },
+            ActiveBlock::FilterArtistBlock => { self.filter_artist_string.pop(); },
+            ActiveBlock::FilterWorkBlock => { self.filter_work_string.pop(); },
+            _ => {}
+        }
+        self.apply_filter();
+        self.playlist_scroll_state = self.playlist_scroll_state.content_length(self.filtered_playlist_indices.len() * self.theme.playlist_theme.item_height);
+        self.current_playing_song_index = None;
+        self.playlist_table_state.select(Some(0));
+        self.need_redraw = true;
+    }
+
     fn toggle_play_order(&mut self) {
         self.play_order = match self.play_order {
             PlayOrder::Sequential => PlayOrder::Shuffle,
@@ -206,61 +269,74 @@ impl App {
     }
 
     fn play_next_song(&mut self) {
-        let index = self.get_next_index();
-        self.player.load(self.playlist.items[index].get_file_path().clone());
-        self.current_playing_song_index = Some(index);
+        let (filter_index, playlist_index) = self.get_next_index();
+        if let Some(i) = playlist_index {
+            self.player.load(self.playlist.items[i].get_file_path().clone());
+        }
+        self.current_playing_song_index = filter_index;
         self.need_redraw = true;
     }
 
     fn play_previous_song(&mut self) {
-        let index = self.get_previous_index();
-        self.player.load(self.playlist.items[index].get_file_path().clone());
-        self.current_playing_song_index = Some(index);
+        let (filter_index, playlist_index) = self.get_previous_index();
+        if let Some(i) = playlist_index {
+            self.player.load(self.playlist.items[i].get_file_path().clone());
+        }
+        self.current_playing_song_index = filter_index;
         self.need_redraw = true;
     }
 
-    fn get_next_index(&self) -> usize {
+    fn get_next_index(&self) -> (Option<usize>, Option<usize>) {
+        if self.filtered_playlist_indices.is_empty() {
+            return (None, None);
+        }
         match self.play_order {
             PlayOrder::Sequential => {
                 match self.current_playing_song_index {
                     Some(index) => {
-                        if index >= self.playlist.items.len() - 1 {
-                            0
+                        if index >= self.filtered_playlist_indices.len() - 1 {
+                            (Some(0), Some(self.filtered_playlist_indices[0]))
                         } else {
-                            index + 1
+                            (Some(index + 1), Some(self.filtered_playlist_indices[index + 1]))
                         }
                     }
                     None => {
-                        0
+                        (Some(0), Some(self.filtered_playlist_indices[0]))
                     }
                 }
             },
             PlayOrder::Shuffle => {
                 let mut rng = rand::rng();
-                rng.random_range(0..self.playlist.items.len())
+                let index = rng.random_range(0..self.filtered_playlist_indices.len());
+                (Some(index), Some(self.filtered_playlist_indices[index]))
             }
         }
     }
 
-    fn get_previous_index(&self) -> usize {
+    fn get_previous_index(&self) -> (Option<usize>, Option<usize>) {
+        if self.filtered_playlist_indices.is_empty() {
+            return (None, None);
+        }
         match self.play_order {
             PlayOrder::Sequential => {
                 match self.current_playing_song_index {
                     Some(index) => {
                         if index == 0 {
-                            self.playlist.items.len() - 1
+                            let len = self.filtered_playlist_indices.len();
+                            (Some(len - 1), Some(self.filtered_playlist_indices[len - 1]))
                         } else {
-                            index - 1
+                            (Some(index - 1), Some(self.filtered_playlist_indices[index - 1]))
                         }
                     }
                     None => {
-                        0
+                        (Some(0), Some(self.filtered_playlist_indices[0]))
                     }
                 }
             },
             PlayOrder::Shuffle => {
                 let mut rng = rand::rng();
-                rng.random_range(0..self.playlist.items.len())
+                let index = rng.random_range(0..self.filtered_playlist_indices.len());
+                (Some(index), Some(self.filtered_playlist_indices[index]))
             }
         }
     }
@@ -269,7 +345,7 @@ impl App {
         let selected = match self.playlist_table_state.selected() {
             Some(selected) => {
                 if selected == 0 {
-                    self.playlist.items.len() - 1
+                    self.filtered_playlist_indices.len() - 1
                 } else {
                     selected - 1
                 }
@@ -284,7 +360,7 @@ impl App {
     fn next_playlist_item(&mut self) {
         let selected = match self.playlist_table_state.selected() {
             Some(selected) => {
-                if selected >= self.playlist.items.len() - 1 {
+                if selected >= self.filtered_playlist_indices.len() - 1 {
                     0
                 } else {
                     selected + 1
@@ -300,7 +376,7 @@ impl App {
     fn load_playlist_item(&mut self) {
         if let Some(selected) = self.playlist_table_state.selected() {
             self.current_playing_song_index = Some(selected);
-            self.player.load(self.playlist.items[selected].get_file_path().clone());
+            self.player.load(self.playlist.items[self.filtered_playlist_indices[selected]].get_file_path().clone());
         }
         self.need_redraw = true;
     }
@@ -366,11 +442,11 @@ impl App {
         self.need_redraw = true;
     }
 
-    /// WARN 如何处理 current_playing_song_index
     fn set_pwd_as_playlist(&mut self) {
         self.playlist = Playlist::from_paths(FileManager::get_file_path_list_static(self.current_path.clone()));
+        self.filtered_playlist_indices = (0..self.playlist.items.len()).collect();
         self.playlist_table_state.select(Some(0));
-        self.playlist_scroll_state = self.playlist_scroll_state.content_length(self.playlist.items.len() * self.theme.playlist_theme.item_height);
+        self.playlist_scroll_state = self.playlist_scroll_state.content_length(self.filtered_playlist_indices.len() * self.theme.playlist_theme.item_height);
         self.current_playing_song_index = None;
         self.need_redraw = true;
     }
@@ -402,4 +478,35 @@ impl App {
     pub fn get_volume(&self) -> u32 {
         self.player.state.volume.load(Ordering::Relaxed)
     }
+
+    fn apply_filter(&mut self) {
+        let name_filter = self.filter_name_string.to_lowercase();
+        let artist_filter = self.filter_artist_string.to_lowercase();
+        let work_filter = self.filter_work_string.to_lowercase();
+
+        let all_filters_empty = name_filter.is_empty() 
+            && artist_filter.is_empty() 
+            && work_filter.is_empty();
+
+        if all_filters_empty {
+            self.filtered_playlist_indices = (0..self.playlist.items.len()).collect();
+        } else {
+            self.filtered_playlist_indices = self.playlist.items
+                .iter()
+                .enumerate()
+                .filter(|(_, item)| {
+                    let name_match = name_filter.is_empty() 
+                        || item.get_name().to_lowercase().contains(&name_filter);
+                    let artist_match = artist_filter.is_empty() 
+                        || item.get_artist().to_lowercase().contains(&artist_filter);
+                    let work_match = work_filter.is_empty() 
+                        || item.get_work().to_lowercase().contains(&work_filter);
+                    name_match && artist_match && work_match
+                })
+                .map(|(index, _)| index)
+                .collect();
+        }
+
+    }
+
 }

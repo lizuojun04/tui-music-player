@@ -45,7 +45,7 @@ impl FileBrowserDrawer {
             })
         )
         .highlight_style(app.theme.file_browser_theme.list_highlight_style)
-        .highlight_symbol(app.theme.file_browser_theme.list_highlight_symbol);
+        .highlight_symbol(format!("{} ", app.theme.file_browser_theme.list_highlight_symbol));
         frame.render_stateful_widget(list, area, &mut app.file_browser_list_state);
     }
 

@@ -8,7 +8,8 @@ use ratatui::{
 pub struct Theme {
     pub playlist_theme: PlaylistTheme,
     pub file_browser_theme: FileBrowserTheme,
-    pub music_info_theme: MusicInfoTheme
+    pub music_info_theme: MusicInfoTheme,
+    pub search_theme: SearchTheme
 }
 
 pub struct PlaylistTheme {
@@ -49,7 +50,7 @@ impl Default for PlaylistTheme {
                 .bg(const_colors::LIGHT_GRAY)
                 .fg(const_colors::GREEN)
                 .bold(),
-            table_highlight_symbol: " ",
+            table_highlight_symbol: "",
             table_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             scrollbar_begin_symbol: "",// "󰗴",
             scrollbar_track_symbol: "󱪼",
@@ -82,7 +83,7 @@ impl Default for FileBrowserTheme {
             list_file_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             list_directory_style: style::Style::default().fg(const_colors::DEEP_BLUE).bold(),
             list_highlight_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::LI_LI_BLUE).bold(),
-            list_highlight_symbol: " "
+            list_highlight_symbol: ""
         }
     }
 }
@@ -159,6 +160,26 @@ impl Default for MusicInfoTheme {
             progress_bar_filled_style: style::Style::default().fg(const_colors::CYAN),
             progress_bar_unfilled_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             progress_bar_head_style: style::Style::default().fg(const_colors::CYAN).bold()
+        }
+    }
+}
+
+pub struct SearchTheme {
+    pub search_borders: Borders,
+    pub search_border_type: BorderType,
+    pub search_border_style: style::Style,
+    pub search_block_selected_symbol: &'static str,
+    pub search_block_selected_style: style::Style
+}
+
+impl Default for SearchTheme {
+    fn default() -> Self {
+        Self {
+            search_borders: Borders::ALL,
+            search_border_type: BorderType::Rounded,
+            search_border_style: style::Style::default().fg(const_colors::DARK_GREEN),
+            search_block_selected_symbol: "",
+            search_block_selected_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::LI_LI_BLUE).bold()
         }
     }
 }

@@ -33,17 +33,6 @@ impl PlaylistDrawer {
         let block = Block::default()
             .borders(app.theme.playlist_theme.playlist_borders)
             .title(Line::from("Playlist").left_aligned())
-            .title(
-                Line::from(
-                    match app.current_playing_song_index {
-                        Some(index) => {
-                            let item = &app.playlist.items[index];
-                            item.get_name().to_string()
-                        },
-                        None => "waiting for a song".to_string()
-                    }
-                ).right_aligned()
-            )
             .border_type(app.theme.playlist_theme.playlist_border_type)
             .border_style(app.theme.playlist_theme.playlist_border_style);
         let inner_area = block.inner(area);
@@ -51,11 +40,12 @@ impl PlaylistDrawer {
         inner_area
     }
     fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
-        let rows = app.playlist.items
+        let rows = app.filtered_playlist_indices
             .iter()
             .enumerate()
-            .map(|(index, item)| {
-            let style = if Some(index) == app.current_playing_song_index {
+            .map(|(filter_index, &playlist_index)| {
+                let item = &app.playlist.items[playlist_index];
+            let style = if Some(filter_index) == app.current_playing_song_index {
                 app.theme.playlist_theme.table_row_selected_style
             } else {
                 app.theme.playlist_theme.table_row_style
@@ -77,7 +67,7 @@ impl PlaylistDrawer {
             .column_spacing(app.theme.playlist_theme.table_column_spacing)
             .header(header)
             .row_highlight_style(app.theme.playlist_theme.table_row_highlight_style)
-            .highlight_symbol(app.theme.playlist_theme.table_highlight_symbol)
+            .highlight_symbol(format!("{} ", app.theme.playlist_theme.table_highlight_symbol))
             .style(app.theme.playlist_theme.table_style);
         frame.render_stateful_widget(table, area, &mut app.playlist_table_state);
     }

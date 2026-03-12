@@ -3,7 +3,8 @@ use crate::{
     ui::components::{
         file_browser_drawer::FileBrowserDrawer, 
         playlist_drawer::PlaylistDrawer,
-        music_info_drawer::MusicInfoDrawer
+        music_info_drawer::MusicInfoDrawer,
+        search_drawer::SearchDrawer
     }
 }; 
 use ratatui::{
@@ -28,7 +29,17 @@ impl UIDrawer {
             ])
             .split(frame.area());
         FileBrowserDrawer::drawn_ui(frame, app, chunks[0]);
-        PlaylistDrawer::drawn_ui(frame, app, chunks[1]);
         MusicInfoDrawer::drawn_ui(frame, app, chunks[2]);
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Max(3),
+                Constraint::Fill(1)
+            ])
+            .split(chunks[1]);
+
+        SearchDrawer::drawn_ui(frame, app, chunks[0]);
+        PlaylistDrawer::drawn_ui(frame, app, chunks[1]);
     }
 }

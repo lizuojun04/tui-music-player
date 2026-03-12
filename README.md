@@ -40,6 +40,9 @@ $ ./target/release/tui-music-player
   - `<Tab>` 顺序/随机播放
   - `u` `i` 调节音量
   - `;` 播放歌曲
+- `/` 切换到搜索
+  - `<Tab>` 进行切换
+  - `<Enter>` 切换回 playlist
 
 #### BUG
 
@@ -51,6 +54,8 @@ $ ./target/release/tui-music-player
 - [ ] mp4 文件无法解析出帧数
 - [ ] 在 home 目录打开，会很卡，我猜测是因为文件数目过多，导致在生成 play list 的时候需要耗费很多时间
 - [x] 在切换 play list 之后，似乎 scroll bar 的长度没有更新
+- [ ] playlist 的长度为 0 的时候会发生错误
+
 
 #### TODO
 
@@ -61,3 +66,4 @@ $ ./target/release/tui-music-player
    - [ ] music info 的布局
 - [ ] 快进功能
 - [ ] 搜索功能
+- [ ] 把 current_playing_index 改成 current_playing_path 会不会好点
