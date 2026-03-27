@@ -54,11 +54,11 @@ pub enum PlayOrder {
     Shuffle
 }
 
-enum CurrentScreen {
+/* enum CurrentScreen {
     MainScreen,
     FileBrowser,
     MusciPlayer,
-}
+} */
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ActiveBlock {
@@ -81,6 +81,7 @@ pub struct App {
     event_receiver: crossbeam_channel::Receiver<MainEvent>,
 
     pub current_path: PathBuf,
+    pub current_playing_song_path: Option<PathBuf>,
     pub current_playing_song_index: Option<usize>,
 
     pub file_browser: FileBrowser,
@@ -125,6 +126,7 @@ impl App {
             event_sender,
             event_receiver,
             current_path: root_dir,
+            current_playing_song_path: None,
             current_playing_song_index: None,
             file_browser,
             file_browser_parent_index: 0,
@@ -197,8 +199,7 @@ impl App {
                                 crossterm::event::KeyCode::Backspace => self.pop_string_input(),
                                 _ => {}
                             }
-                        },
-                        _ => {}
+                        }
                     }
                 }
                 Ok(MainEvent::Player(PlayerEvent::SongFinished)) => {
@@ -271,7 +272,9 @@ impl App {
     fn play_next_song(&mut self) {
         let (filter_index, playlist_index) = self.get_next_index();
         if let Some(i) = playlist_index {
-            self.player.load(self.playlist.items[i].get_file_path().clone());
+            let song_path = self.playlist.items[i].get_file_path().clone();
+            self.current_playing_song_path = Some(song_path.clone());
+            self.player.load(song_path);
         }
         self.current_playing_song_index = filter_index;
         self.need_redraw = true;
@@ -280,7 +283,9 @@ impl App {
     fn play_previous_song(&mut self) {
         let (filter_index, playlist_index) = self.get_previous_index();
         if let Some(i) = playlist_index {
-            self.player.load(self.playlist.items[i].get_file_path().clone());
+            let song_path = self.playlist.items[i].get_file_path().clone();
+            self.current_playing_song_path = Some(song_path.clone());
+            self.player.load(song_path);
         }
         self.current_playing_song_index = filter_index;
         self.need_redraw = true;
@@ -376,7 +381,9 @@ impl App {
     fn load_playlist_item(&mut self) {
         if let Some(selected) = self.playlist_table_state.selected() {
             self.current_playing_song_index = Some(selected);
-            self.player.load(self.playlist.items[self.filtered_playlist_indices[selected]].get_file_path().clone());
+            let song_path = self.playlist.items[self.filtered_playlist_indices[selected]].get_file_path().clone();
+            self.current_playing_song_path = Some(song_path.clone());
+            self.player.load(song_path);
         }
         self.need_redraw = true;
     }

@@ -65,5 +65,7 @@ $ ./target/release/tui-music-player
    - [ ] 颜色
    - [ ] music info 的布局
 - [ ] 快进功能
-- [ ] 搜索功能
-- [ ] 把 current_playing_index 改成 current_playing_path 会不会好点
+- [x] 搜索功能
+- [x] 把 current_playing_index 改成 current_playing_path 会不会好点
+- [ ] 图片解析
+

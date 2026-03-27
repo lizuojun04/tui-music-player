@@ -23,8 +23,9 @@ impl Drawable for MusicInfoDrawer {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(1),
-                Constraint::Min(12),
-                Constraint::Min(14),
+                Constraint::Min(9),
+                Constraint::Min(1),
+                Constraint::Min(21),
                 Constraint::Min(2),
                 Constraint::Min(7),
                 Constraint::Min(1),
@@ -32,10 +33,10 @@ impl Drawable for MusicInfoDrawer {
             ])
             .split(Self::render_block_with_border(frame, app, area));
         Self::render_logo(frame, app,         chunks[1]);
-        Self::render_picture(frame, app,      chunks[2]);
-        Self::render_text_info(frame, app,    chunks[4]);
-        Self::render_status(frame, app,       chunks[5]);
-        Self::render_progress_bar(frame, app, chunks[6]);
+        Self::render_picture(frame, app,      chunks[3]);
+        Self::render_text_info(frame, app,    chunks[5]);
+        Self::render_status(frame, app,       chunks[6]);
+        Self::render_progress_bar(frame, app, chunks[7]);
     }
 }
 
@@ -60,7 +61,7 @@ impl MusicInfoDrawer {
 
     fn render_picture(frame: &mut Frame, app: &mut App, area: Rect) {
         let paragraph = Paragraph::new(app.theme.music_info_theme.picture)
-            .style(app.theme.music_info_theme.logo_style)
+            .style(app.theme.music_info_theme.picture_style)
             .alignment(ratatui::layout::Alignment::Center);
         frame.render_widget(paragraph, area);
     }
