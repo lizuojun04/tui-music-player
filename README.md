@@ -27,6 +27,18 @@ $ cargo build -r
 $ ./target/release/tui-music-player
 ```
 
+无参数启动时，程序会自动启动独立的播放 daemon，然后进入 TUI。退出或使用
+`Ctrl-Z` 挂起 TUI 不会中断音乐；使用 `fg` 可回到界面。也可以单独启动和控制 daemon：
+
+```sh
+$ tui-music-player daemon
+$ tui-music-player continue
+$ tui-music-player pause
+$ tui-music-player stop
+$ tui-music-player next
+$ tui-music-player prev
+```
+
 默认打开当前文件夹，如果需要切换文件夹，按照下面键位切换即可
 
 - `f` 切换到文件管理器
@@ -72,4 +84,3 @@ $ ./target/release/tui-music-player
 - [ ] 搜索功能的光标
 - [ ] 接入系统接口，能直接通过键盘控制歌曲
 - [ ] 在搜索栏中敲入字符，然后 file manager 中 set playlist，然后再在搜索栏中敲入或者是重新删除再敲入，会有问题
-

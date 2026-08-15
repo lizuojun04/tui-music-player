@@ -1963,9 +1963,12 @@ dependencies = [
  "cpal",
  "crossbeam-channel",
  "crossterm",
+ "libc",
  "rand 0.10.0",
  "ratatui",
  "ringbuf",
+ "serde",
+ "serde_json",
  "symphonia",
  "walkdir",
 ]

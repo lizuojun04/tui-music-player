@@ -1,31 +1,151 @@
-mod audio;
-mod utils;
-mod ui;
 mod app;
-use std::{env, path::PathBuf};
+mod audio;
+mod protocol;
+mod ui;
+mod utils;
 
-fn main() -> std::io::Result<()> {
-    crossterm::terminal::enable_raw_mode()?;
-    let mut stdout = std::io::stdout();
-    crossterm::execute!(stdout, crossterm::terminal::EnterAlternateScreen)?;
+use crate::{
+    app::app::{App, AppExit},
+    audio::{client::PlayerClient, daemon::PlayerDaemon},
+    protocol::PlayerRequest,
+    utils::key_input::KeyInput,
+};
+use ratatui::{Terminal, backend::CrosstermBackend};
+use std::{
+    env,
+    io::{self, stdout},
+    os::unix::process::CommandExt,
+    path::PathBuf,
+    process::{Command, Stdio},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
-    let backend = ratatui::backend::CrosstermBackend::new(stdout);
-    let mut terminal = ratatui::Terminal::new(backend)?;
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("tui-music-player: {error}");
+        std::process::exit(1);
+    }
+}
 
-    let mut app = app::app::App::new(env::current_dir().unwrap_or_else(|_| PathBuf::from("/home/")));
-    let res = app.run(&mut terminal);
+fn run() -> io::Result<()> {
+    let command = env::args().nth(1);
+    match command.as_deref() {
+        None => {
+            ensure_daemon()?;
+            run_tui()
+        }
+        Some("daemon") => PlayerDaemon::run(),
+        Some("continue") => send_command(PlayerRequest::Continue),
+        Some("pause") => send_command(PlayerRequest::Pause),
+        Some("stop") => send_command(PlayerRequest::Shutdown),
+        Some("next") => send_command(PlayerRequest::Next),
+        Some("prev") => send_command(PlayerRequest::Prev),
+        Some(other) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "unknown command '{other}'\nusage: tui-music-player [daemon|continue|pause|stop|next|prev]"
+            ),
+        )),
+    }
+}
 
-    crossterm::terminal::disable_raw_mode()?;
-    crossterm::execute!(
-        terminal.backend_mut(),
-        crossterm::terminal::LeaveAlternateScreen
-    )?;
-    terminal.show_cursor()?;
-
-    if let Err(err) = res {
-        println!("{:?}", err);
-        return Err(err);
+fn ensure_daemon() -> io::Result<()> {
+    let client = PlayerClient;
+    if client.is_running() {
+        return Ok(());
     }
 
-    Ok(())
+    let executable = env::current_exe()?;
+    let mut command = Command::new(executable);
+    command
+        .arg("daemon")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0);
+    command.spawn()?;
+
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while Instant::now() < deadline {
+        if client.is_running() {
+            return Ok(());
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    Err(io::Error::new(
+        io::ErrorKind::TimedOut,
+        "daemon did not become ready within 3 seconds; run `tui-music-player daemon` to inspect the error",
+    ))
+}
+
+fn send_command(request: PlayerRequest) -> io::Result<()> {
+    PlayerClient.request(&request).map(|_| ()).map_err(|error| {
+        let message = match error.kind() {
+            io::ErrorKind::NotFound
+            | io::ErrorKind::ConnectionRefused
+            | io::ErrorKind::ConnectionReset => format!(
+                "cannot contact the daemon: {error}; start it with `tui-music-player daemon`"
+            ),
+            _ => format!("daemon command failed: {error}"),
+        };
+        io::Error::new(error.kind(), message)
+    })
+}
+
+fn run_tui() -> io::Result<()> {
+    let root_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("/home/"));
+    let mut app = App::new(root_dir);
+    let input_enabled = Arc::new(AtomicBool::new(false));
+    KeyInput::listen_key_input(app.event_sender.clone(), input_enabled.clone());
+
+    loop {
+        wait_until_foreground();
+        crossterm::terminal::enable_raw_mode()?;
+        let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+        crossterm::execute!(
+            terminal.backend_mut(),
+            crossterm::terminal::EnterAlternateScreen
+        )?;
+        input_enabled.store(true, Ordering::Relaxed);
+
+        let result = app.run(&mut terminal);
+        input_enabled.store(false, Ordering::Relaxed);
+        crossterm::terminal::disable_raw_mode()?;
+        crossterm::execute!(
+            terminal.backend_mut(),
+            crossterm::terminal::LeaveAlternateScreen
+        )?;
+        terminal.show_cursor()?;
+
+        match result? {
+            AppExit::Quit => return Ok(()),
+            AppExit::Suspend => suspend_tui(),
+        }
+    }
+}
+
+fn suspend_tui() {
+    // SAFETY: raising SIGTSTP for the current process is equivalent to the
+    // terminal driver's normal Ctrl-Z handling. The terminal is restored first.
+    unsafe {
+        libc::raise(libc::SIGTSTP);
+    }
+}
+
+fn wait_until_foreground() {
+    // `bg` resumes the TUI process, but background jobs must not read from the
+    // terminal. Wait quietly until `fg` makes this process group foreground.
+    unsafe {
+        if libc::isatty(libc::STDIN_FILENO) != 1 {
+            return;
+        }
+        while libc::tcgetpgrp(libc::STDIN_FILENO) != libc::getpgrp() {
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
 }

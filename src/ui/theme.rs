@@ -1,15 +1,13 @@
-use ratatui::widgets::{Borders, BorderType};
+use ratatui::widgets::{BorderType, Borders};
 
-use ratatui::{
-    style::{self, Color}
-};
+use ratatui::style::{self, Color};
 
 pub struct Theme {
     pub playlist_theme: PlaylistTheme,
     pub file_browser_theme: FileBrowserTheme,
     pub music_info_theme: MusicInfoTheme,
     pub search_theme: SearchTheme,
-    pub selected_area_style: style::Style
+    pub selected_area_style: style::Style,
 }
 
 impl Default for Theme {
@@ -19,7 +17,7 @@ impl Default for Theme {
             file_browser_theme: FileBrowserTheme::default(),
             music_info_theme: MusicInfoTheme::default(),
             search_theme: SearchTheme::default(),
-            selected_area_style: style::Style::default().fg(const_colors::GOLD).bold()
+            selected_area_style: style::Style::default().fg(const_colors::GOLD).bold(),
         }
     }
 }
@@ -42,7 +40,7 @@ pub struct PlaylistTheme {
     pub scrollbar_thumb_style: style::Style,
     pub scrollbar_end_symbol: &'static str,
     // pub scrollbar_style: style::Style,
-    pub item_height: usize
+    pub item_height: usize,
 }
 
 impl Default for PlaylistTheme {
@@ -64,14 +62,14 @@ impl Default for PlaylistTheme {
                 .bold(),
             table_highlight_symbol: "",
             table_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
-            scrollbar_begin_symbol: "",// "󰗴",
+            scrollbar_begin_symbol: "", // "󰗴",
             scrollbar_track_symbol: "󱪼",
             scrollbar_track_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             scrollbar_thumb_symbol: "󱪽",
             scrollbar_thumb_style: style::Style::default().fg(const_colors::DEEP_BLUE),
             scrollbar_end_symbol: "",
             // scrollbar_style: style::Style::default(),
-            item_height: 1
+            item_height: 1,
         }
     }
 }
@@ -83,7 +81,7 @@ pub struct FileBrowserTheme {
     pub list_file_style: style::Style,
     pub list_directory_style: style::Style,
     pub list_highlight_style: style::Style,
-    pub list_highlight_symbol: &'static str
+    pub list_highlight_symbol: &'static str,
 }
 
 impl Default for FileBrowserTheme {
@@ -94,8 +92,11 @@ impl Default for FileBrowserTheme {
             file_browser_border_style: style::Style::default().fg(const_colors::DEEP_BLUE),
             list_file_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
             list_directory_style: style::Style::default().fg(const_colors::DEEP_BLUE).bold(),
-            list_highlight_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::LI_LI_BLUE).bold(),
-            list_highlight_symbol: ""
+            list_highlight_style: style::Style::default()
+                .bg(const_colors::LIGHT_GRAY)
+                .fg(const_colors::LI_LI_BLUE)
+                .bold(),
+            list_highlight_symbol: "",
         }
     }
 }
@@ -123,7 +124,7 @@ pub struct MusicInfoTheme {
     pub progress_bar_end_symbol: &'static str,
     pub progress_bar_filled_style: style::Style,
     pub progress_bar_unfilled_style: style::Style,
-    pub progress_bar_head_style: style::Style
+    pub progress_bar_head_style: style::Style,
 }
 
 impl Default for MusicInfoTheme {
@@ -186,7 +187,7 @@ _______█▄▄█░░█▄▄█░░░░░░█▄▄█░░█▄�
             progress_bar_end_symbol: "]",
             progress_bar_filled_style: style::Style::default().fg(const_colors::CYAN),
             progress_bar_unfilled_style: style::Style::default().fg(const_colors::DARK_GRAY_BLUE),
-            progress_bar_head_style: style::Style::default().fg(const_colors::CYAN).bold()
+            progress_bar_head_style: style::Style::default().fg(const_colors::CYAN).bold(),
         }
     }
 }
@@ -196,7 +197,7 @@ pub struct SearchTheme {
     pub search_border_type: BorderType,
     pub search_border_style: style::Style,
     pub search_block_selected_symbol: &'static str,
-    pub search_block_selected_style: style::Style
+    pub search_block_selected_style: style::Style,
 }
 
 impl Default for SearchTheme {
@@ -206,30 +207,32 @@ impl Default for SearchTheme {
             search_border_type: BorderType::Rounded,
             search_border_style: style::Style::default().fg(const_colors::DARK_GREEN),
             search_block_selected_symbol: "",
-            search_block_selected_style: style::Style::default().bg(const_colors::LIGHT_GRAY).fg(const_colors::LI_LI_BLUE).bold()
+            search_block_selected_style: style::Style::default()
+                .bg(const_colors::LIGHT_GRAY)
+                .fg(const_colors::LI_LI_BLUE)
+                .bold(),
         }
     }
 }
 
 pub mod const_colors {
     use super::Color;
-    
-    pub const GRAY            : Color = Color::Rgb(200, 200, 200);
-    pub const CYAN            : Color = Color::Rgb( 25, 225, 235);
-    pub const LIGHT_BLUE      : Color = Color::Rgb( 58, 157, 214);
-    pub const BLUE            : Color = Color::Rgb( 32, 173, 199);
-    pub const DEEP_BLUE       : Color = Color::Rgb(  7, 129, 229);
-    pub const LI_LI_BLUE      : Color = Color::Rgb( 42, 192, 213);
-    pub const GREEN           : Color = Color::Rgb( 21, 194, 146);
-    pub const DARK_GREEN      : Color = Color::Rgb( 20, 150, 100);
-    pub const GRAY_BLUE       : Color = Color::Rgb(150, 180, 250);
-    pub const LIGHT_GRAY      : Color = Color::Rgb( 20,  30,  30);
-    pub const LIGHT_GRAY_BLUE : Color = Color::Rgb( 15,  25,  30);
-    pub const DARK_GRAY       : Color = Color::Rgb(120, 120, 120);
-    pub const DARK_GRAY_BLUE  : Color = Color::Rgb( 90, 110, 150);
-    pub const GOLD            : Color = Color::Rgb(255, 158, 100);
-}
 
+    pub const GRAY: Color = Color::Rgb(200, 200, 200);
+    pub const CYAN: Color = Color::Rgb(25, 225, 235);
+    pub const LIGHT_BLUE: Color = Color::Rgb(58, 157, 214);
+    pub const BLUE: Color = Color::Rgb(32, 173, 199);
+    pub const DEEP_BLUE: Color = Color::Rgb(7, 129, 229);
+    pub const LI_LI_BLUE: Color = Color::Rgb(42, 192, 213);
+    pub const GREEN: Color = Color::Rgb(21, 194, 146);
+    pub const DARK_GREEN: Color = Color::Rgb(20, 150, 100);
+    pub const GRAY_BLUE: Color = Color::Rgb(150, 180, 250);
+    pub const LIGHT_GRAY: Color = Color::Rgb(20, 30, 30);
+    pub const LIGHT_GRAY_BLUE: Color = Color::Rgb(15, 25, 30);
+    pub const DARK_GRAY: Color = Color::Rgb(120, 120, 120);
+    pub const DARK_GRAY_BLUE: Color = Color::Rgb(90, 110, 150);
+    pub const GOLD: Color = Color::Rgb(255, 158, 100);
+}
 
 /*
 ───▐▀▄──────▄▀▌───▄▄▄▄▄▄▄
@@ -241,7 +244,7 @@ pub mod const_colors {
 ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▄█▒█
 ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▀
 ──▐▄▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▄▌
-────▀▄▄▀▀▀▀▄▄▀▀▀▀▀▀▄▄▀▀▀▀▀▀▄▄▀ 
+────▀▄▄▀▀▀▀▄▄▀▀▀▀▀▀▄▄▀▀▀▀▀▀▄▄▀
 
 ⠀⠀⠀⠀⢀⠴⣲⣯⣉⣽⣿⡛⠻⣶⠖⢒⢶⣦⣄⠀⠀⠀⠀⠀
 ⠀⠀⢀⡴⢁⡜⠉⠋⠉⠹⠉⠱⡄⠙⢦⣼⣾⣿⣿⣧⠀⠀⠀⠀
@@ -253,13 +256,13 @@ pub mod const_colors {
 ⠀⠀⠈⢺⡿⠇⡀⠉⠉⠉⠉⢉⣼⡡⠋⠀⠀⢀⣴⠀⠀⣠⠟⠀
 ⠀⠀⠀⠀⢷⡀⢻⡶⣤⣤⠀⠀⠀⠀⣀⣤⡴⠛⡇⠀⠀⡏⠀⠀
 ⠀⠀⠀⠀⠈⠳⠼⠃⠀⠈⢧⡀⠀⠀⡇⠀⠀⠀⠻⣄⣀⡟⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠶⠾⠁⠀⠀⠀⠀⠈⠉⠀⠀⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠶⠾⠁⠀⠀⠀⠀⠈⠉⠀⠀⠀
 
 ──▒▒▒▒▒────▒▒▒▒▒────▒▒▒▒▒────▄████▄─────
 ─▒▄─▒▄─▒──▒▄─▒▄─▒──▒▄─▒▄─▒──███▄█▀───────
 ─▒▒▒▒▒▒▒──▒▒▒▒▒▒▒──▒▒▒▒▒▒▒─▐████___▄__▄__▄
 ─▒▒▒▒▒▒▒──▒▒▒▒▒▒▒──▒▒▒▒▒▒▒──█████▄───────
-─▒─▒─▒─▒──▒─▒─▒─▒──▒─▒─▒─▒───▀████▀───── 
+─▒─▒─▒─▒──▒─▒─▒─▒──▒─▒─▒─▒───▀████▀─────
 
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⡟
 ⠀⠀⠀⠀⠀⠀⣀⡤⠖⣻⣿⣿⣿⣿⣿⣶⣶⣶⣶⣿⡟
@@ -274,7 +277,7 @@ pub mod const_colors {
 ⠀⠹⡄⠀⠀⠀⠀⠀⠀⢻⣿⣿⡏⠀⠘⠀⣿⣿⠇⣿⣿⣿⣿⡟
 ⠀⠀⠙⣆⠀⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠈⠉⢠⣿⣿⣿⠟⠁
 ⠀⠀⠀⠈⠳⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⡿⠛⠁
-⠀⠀⠀⠀⠀⠀⠉⠓⠲⢤⣄⣀⣀⣀⣤⡴⠛⠉ 
+⠀⠀⠀⠀⠀⠀⠉⠓⠲⢤⣄⣀⣀⣀⣤⡴⠛⠉
 
 
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣶⡟
@@ -290,7 +293,7 @@ pub mod const_colors {
 ⠀⠹⡄⠀⠀⠀⠀⠀⠀⢻⣿⣿⡏⠀⠘⠀⣿⣿⠇⣿⣿⣿⣿⡟
 ⠀⠀⠙⣆⠀⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠈⠉⢠⣿⣿⣿⠟⠁
 ⠀⠀⠀⠈⠳⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⡿⠛⠁
-⠀⠀⠀⠀⠀⠀⠉⠓⠲⢤⣄⣀⣀⣀⣤⡴⠛⠉ 
+⠀⠀⠀⠀⠀⠀⠉⠓⠲⢤⣄⣀⣀⣀⣤⡴⠛⠉
 
 
 _____________█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
@@ -302,7 +305,7 @@ _____▀▀▄▄█░▒▒▒▒▓▒▒▒▓▒█░░░█▒░░░
 __________█░▒▓▒▒▒▒▓▒▒▒█░░░░░░░▀░░░░░█
 ________▄▄█░▒▒▒▓▒▒▒▒▒▒▒█░░█▄▄█▄▄█░░█
 _______█░░░█▄▄▄▄▄▄▄▄▄▄█░█▄▄▄▄▄▄▄▄▄█
-_______█▄▄█░░█▄▄█░░░░░░█▄▄█░░█▄▄█ 
+_______█▄▄█░░█▄▄█░░░░░░█▄▄█░░█▄▄█
 
 
 ░░░░░░░█▐▓▓░████▄▄▄█▀▄▓▓▓▌█
@@ -315,36 +318,36 @@ _______█▄▄█░░█▄▄█░░░░░░█▄▄█░░█▄�
 █▐█▓▀░░▀▓▓▓▓▓▓▓▓▓██████▓▓▓▓▐█
 ▌▓▄▌▀░▀░▐▀█▄▓▓██████████▓▓▓▌█▌
 ▌▓▓▓▄▄▀▀▓▓▓▀▓▓▓▓▓▓▓▓█▓█▓█▓▓▌█▌
-█▐▓▓▓▓▓▓▄▄▄▓▓▓▓▓▓█▓█▓█▓█▓▓▓▐█ 
+█▐▓▓▓▓▓▓▄▄▄▓▓▓▓▓▓█▓█▓█▓█▓▓▓▐█
 
 
 
-＼　　ヽ　　　　i　　|　　　　 /　　　/　
-　　　＼　
-　　　　　　　　　　　　　　;' ':;,,　　　　 ,;'':;,
-　　　　　　　　　　　　　;'　　 ':;,.,.,.,.,.,,,;'　　';,
-　　ー　　　　　　　　 ,:'　　　　　　　　 　::::::::､
-　＿　　　　　　　　,:' ／ 　 　　　　＼ 　　::::::::',
-　　　　　二　　　　:'　 ●　　　　　 ●　 　　 ::::::::i.
-　　￣　　　　　　　i　 '''　(__人)　　'''' 　　 ::::::::::i
-　　　　-‐　　　　　 :　 　　　　　　　　　 　::::::::i
-　　　　　　　　　　　`:,､ 　　　　　 　 　 :::::::::: /
-　　　　／　　　　　　 ,:'　　　　　　　 : ::::::::::::｀:､
-　　　　　　　　　　　 ,:'　　　　　　　　 : : ::::::::::｀:､ 
+＼　　ヽ　　　　i　　|　　　　 /　　　/
+＼
+;' ':;,,　　　　 ,;'':;,
+;'　　 ':;,.,.,.,.,.,,,;'　　';,
+ー　　　　　　　　 ,:'　　　　　　　　 　::::::::､
+＿　　　　　　　　,:' ／ 　 　　　　＼ 　　::::::::',
+二　　　　:'　 ●　　　　　 ●　 　　 ::::::::i.
+￣　　　　　　　i　 '''　(__人)　　'''' 　　 ::::::::::i
+-‐　　　　　 :　 　　　　　　　　　 　::::::::i
+`:,､ 　　　　　 　 　 :::::::::: /
+／　　　　　　 ,:'　　　　　　　 : ::::::::::::｀:､
+,:'　　　　　　　　 : : ::::::::::｀:､
 
 
 
-　　　　　　　__..,,__　　　,.｡='`1
-　　　　 .,,..;~`''''　　　　`''''＜``彡　}
-　 _...:=,`'　　 　︵　 т　︵　　X彡-J
+__..,,__　　　,.｡='`1
+.,,..;~`''''　　　　`''''＜``彡　}
+_...:=,`'　　 　︵　 т　︵　　X彡-J
 ＜`　彡 /　　ミ　　,_人_.　＊彡　`~
-　 `~=::　　　 　　　　　　 　　　Y
-　　 　i.　　　　　　　　　　　　 .:
-　　　.\　　　　　　　,｡---.,,　　./
-　　　　ヽ　／ﾞ''```\;.{　　　 ＼／
-　　　　　Y　　　`J..r_.彳　 　|
-　　　　　{　　　``　　`　　　i
-　　　　　\　　𝓗𝓪𝓿𝓮 𝓪 𝓵𝓸𝓿𝓮𝓵𝔂 𝓭𝓪𝔂 
+`~=::　　　 　　　　　　 　　　Y
+i.　　　　　　　　　　　　 .:
+.\　　　　　　　,｡---.,,　　./
+ヽ　／ﾞ''```\;.{　　　 ＼／
+Y　　　`J..r_.彳　 　|
+{　　　``　　`　　　i
+\　　𝓗𝓪𝓿𝓮 𝓪 𝓵𝓸𝓿𝓮𝓵𝔂 𝓭𝓪𝔂
 
 
 
@@ -354,7 +357,7 @@ ______█▼▼▼▼▼▼▼█
 _____██_______██▌
 ______█▲▲▲▲▲▲▲█
 ______█████████
-_______██___██ 
+_______██___██
 
 
 
@@ -371,8 +374,8 @@ _______██___██
 
 ..... ／l、
 ...（ﾟ､ ｡ ７
-.....l、 ~ヽ　
-.....じしf_, )ノ 
+.....l、 ~ヽ
+.....じしf_, )ノ
 
 ⠀⠀⠀⠀⠀⠀⠀⣀⠤⠤⠖⠒⠒⠒⠤⣀
 ⣀⣀⣀⡠⠔⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⢤
@@ -386,16 +389,16 @@ _______██___██
 ⢸⠀⠀⣦⣾⣿⣦⣴⣾⣦⣴⣾⣷⣄⡤⡇⠀⠀⡇⠀⠀⠀⡄
 ⡜⠀⠀⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁⠀⢀⡿⠀⠀⠀⠘⡀
 ⡇⠀⠀⠀⡟⠁⠈⠛⠁⠈⠚⠉⠀⠈⠏⠀⠀⡼⠀⠀⠀⠀⠀⠀⢱
-⢳⠀⠀⢀⠃⠀⠀⢸⣿⣷⠀⠀⠀⢰⠀⠀⣰⢷⠀⠀⠀⠀⠀⠀⣸ 
+⢳⠀⠀⢀⠃⠀⠀⢸⣿⣷⠀⠀⠀⢰⠀⠀⣰⢷⠀⠀⠀⠀⠀⠀⣸
 
 ░▄▄▄▄░
 ▀▀▄██►
 ▀▀███►
 ░▀███►░█►
-▒▄████▀▀ 
+▒▄████▀▀
 
-　　　　　　　　_,.. -──- ､,
-　　　　　　　　,　'" 　 　　　 　　 `ヽ.
+_,.. -──- ､,
+,　'" 　 　　　 　　 `ヽ.
 　　　　　　 ／/¨7__　　/ 　 　 i　 _厂廴
 　　　　　 /￣( ノ__/　/{　　　　} ｢　（_冫}
 　　　　／￣l＿// 　/-|　 ,!　 ﾑ ￣|＿｢ ＼＿_
