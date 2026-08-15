@@ -5,7 +5,6 @@ use crate::{
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::Style,
     text::{Line, Span},
     widgets::{Block, Paragraph}, 
     Frame
@@ -47,7 +46,13 @@ impl SearchDrawer {
     fn render_search_block(frame: &mut Frame, app: &mut App, area: Rect, title: &str, filter_string: &str, is_active: bool) {
         let block = Block::default()
             .borders(app.theme.music_info_theme.music_info_borders)
-            .title(Line::from(title).left_aligned())
+            .title(
+                if is_active {
+                    Line::from(title).style(app.theme.selected_area_style).left_aligned()
+                } else {
+                    Line::from(title).left_aligned()
+                }
+            )
             .border_type(app.theme.music_info_theme.music_info_border_type)
             .border_style(app.theme.music_info_theme.music_info_border_style);
         let filter_text = Span::raw(format!(" {}", filter_string));

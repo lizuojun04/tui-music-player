@@ -1,6 +1,5 @@
 use crate::{
-    ui::ui::Drawable,
-    app::app::App
+    app::app::{ActiveBlock, App}, ui::ui::Drawable
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -32,7 +31,13 @@ impl PlaylistDrawer {
     fn render_block_with_border(frame: &mut Frame, app: &mut App, area: Rect) -> Rect {
         let block = Block::default()
             .borders(app.theme.playlist_theme.playlist_borders)
-            .title(Line::from("Playlist").left_aligned())
+            .title(
+                if app.activate_block == ActiveBlock::PlaylistBlock {
+                    Line::from("Playlist").style(app.theme.selected_area_style).left_aligned()
+                } else {
+                    Line::from("Playlist").left_aligned()
+                }
+            )
             .border_type(app.theme.playlist_theme.playlist_border_type)
             .border_style(app.theme.playlist_theme.playlist_border_style);
         let inner_area = block.inner(area);

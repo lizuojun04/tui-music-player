@@ -4,12 +4,24 @@ use ratatui::{
     style::{self, Color}
 };
 
-#[derive(Default)]
 pub struct Theme {
     pub playlist_theme: PlaylistTheme,
     pub file_browser_theme: FileBrowserTheme,
     pub music_info_theme: MusicInfoTheme,
-    pub search_theme: SearchTheme
+    pub search_theme: SearchTheme,
+    pub selected_area_style: style::Style
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self {
+            playlist_theme: PlaylistTheme::default(),
+            file_browser_theme: FileBrowserTheme::default(),
+            music_info_theme: MusicInfoTheme::default(),
+            search_theme: SearchTheme::default(),
+            selected_area_style: style::Style::default().fg(const_colors::GOLD).bold()
+        }
+    }
 }
 
 pub struct PlaylistTheme {
@@ -215,6 +227,7 @@ pub mod const_colors {
     pub const LIGHT_GRAY_BLUE : Color = Color::Rgb( 15,  25,  30);
     pub const DARK_GRAY       : Color = Color::Rgb(120, 120, 120);
     pub const DARK_GRAY_BLUE  : Color = Color::Rgb( 90, 110, 150);
+    pub const GOLD            : Color = Color::Rgb(255, 158, 100);
 }
 
 
@@ -413,7 +426,7 @@ _______██___██
 
 
 　　　∧_∧　
-　　 (　･_･) [insert text here]
+　　 (　･_･) [ptm nb]
 　 ＿|　⊃／(＿＿_
 ／　└-(＿＿＿_／ 
 

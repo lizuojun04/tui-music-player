@@ -1,5 +1,5 @@
 use crate::{
-    app::app::App,
+    app::app::{ActiveBlock, App},
     ui::ui::Drawable,
     utils::utils
 };
@@ -24,7 +24,13 @@ impl FileBrowserDrawer {
     fn render_block_with_border(frame: &mut Frame, app: &mut App, area: Rect) -> Rect {
         let block = Block::default()
             .borders(app.theme.file_browser_theme.file_browser_borders)
-            .title(Line::from("File Browser").left_aligned())
+            .title(
+                if app.activate_block == ActiveBlock::FileBrowserBlock {
+                    Line::from("File Browser").style(app.theme.selected_area_style).left_aligned()
+                } else {
+                    Line::from("File Browser").left_aligned()
+                }
+            )
             .title_bottom(Line::from(utils::format_path_for_display(&app.current_path)).right_aligned())
             .border_type(app.theme.file_browser_theme.file_browser_border_type)
             .border_style(app.theme.file_browser_theme.file_browser_border_style);

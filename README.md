@@ -68,4 +68,8 @@ $ ./target/release/tui-music-player
 - [x] 搜索功能
 - [x] 把 current_playing_index 改成 current_playing_path 会不会好点
 - [ ] 图片解析
+- [ ] 后台播放
+- [ ] 搜索功能的光标
+- [ ] 接入系统接口，能直接通过键盘控制歌曲
+- [ ] 在搜索栏中敲入字符，然后 file manager 中 set playlist，然后再在搜索栏中敲入或者是重新删除再敲入，会有问题
 
