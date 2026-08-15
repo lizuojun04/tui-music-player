@@ -13,6 +13,7 @@ use ratatui::{
     backend::Backend,
     widgets::{ListState, ScrollbarState, TableState},
 };
+use crossterm::event::KeyCode::{Char, Tab, Backspace, Enter};
 use std::io;
 use std::{path::PathBuf, time::Duration};
 
@@ -61,11 +62,11 @@ pub enum PlayOrder {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ActiveBlock {
-    FileBrowserBlock,
-    PlaylistBlock,
-    FilterNameBlock,
-    FilterArtistBlock,
-    FilterWorkBlock,
+    FileBrowser,
+    Playlist,
+    FilterName,
+    FilterArtist,
+    FilterWork,
 }
 
 /// use to manage all states of the app,
@@ -126,7 +127,7 @@ impl App {
         let mut app = Self {
             player: PlayerClient,
             player_status: PlayerStatus::default(),
-            activate_block: ActiveBlock::PlaylistBlock,
+            activate_block: ActiveBlock::Playlist,
             event_sender,
             event_receiver,
             current_path: root_dir,
@@ -168,7 +169,7 @@ impl App {
                 .recv_timeout(Duration::from_millis(1000))
             {
                 Ok(MainEvent::Key(key)) => {
-                    if key.code == crossterm::event::KeyCode::Char('z')
+                    if key.code == Char('z')
                         && key
                             .modifiers
                             .contains(crossterm::event::KeyModifiers::CONTROL)
@@ -176,57 +177,61 @@ impl App {
                         return Ok(AppExit::Suspend);
                     }
                     match self.activate_block {
-                        ActiveBlock::PlaylistBlock => match key.code {
-                            crossterm::event::KeyCode::Char('q') => {
+                        ActiveBlock::Playlist => match key.code {
+                            Char('q') => {
                                 return Ok(self.shutdown());
                             }
-                            crossterm::event::KeyCode::Char('j') => self.next_playlist_item(),
-                            crossterm::event::KeyCode::Char('k') => self.previous_playlist_item(),
-                            crossterm::event::KeyCode::Char(';') => self.load_playlist_item(),
-                            crossterm::event::KeyCode::Char(' ') => {
+                            Char('j') => self.next_playlist_item(),
+                            Char('k') => self.previous_playlist_item(),
+                            Char(';') => self.load_playlist_item(),
+                            Char(' ') => {
                                 self.toggle_play_pause_playlist_item()
                             }
-                            crossterm::event::KeyCode::Char('l') => self.play_next_song(),
-                            crossterm::event::KeyCode::Char('h') => self.play_previous_song(),
-                            crossterm::event::KeyCode::Char('f') => {
-                                self.switch_to(ActiveBlock::FileBrowserBlock)
+                            Char('l') => self.play_next_song(),
+                            Char('h') => self.play_previous_song(),
+                            Char('f') => {
+                                self.switch_to(ActiveBlock::FileBrowser)
                             }
-                            crossterm::event::KeyCode::Char('/') => {
-                                self.switch_to(ActiveBlock::FilterNameBlock)
+                            Char('/') => {
+                                self.clear_filter_strings();
+                                self.apply_filter();
+                                self.sync_playlist();
+                                self.switch_to(ActiveBlock::FilterName)
                             }
-                            crossterm::event::KeyCode::Tab => self.toggle_play_order(),
-                            crossterm::event::KeyCode::Char('i') => self.increase_volume(),
-                            crossterm::event::KeyCode::Char('u') => self.decrease_volume(),
+                            Tab => self.toggle_play_order(),
+                            Char('i') => self.increase_volume(),
+                            Char('u') => self.decrease_volume(),
                             _ => {}
                         },
-                        ActiveBlock::FileBrowserBlock => match key.code {
-                            crossterm::event::KeyCode::Char('q') => {
+                        ActiveBlock::FileBrowser => match key.code {
+                            Char('q') => {
                                 return Ok(self.shutdown());
                             }
-                            crossterm::event::KeyCode::Char('j') => self.next_file_browser_item(),
-                            crossterm::event::KeyCode::Char('k') => {
+                            Char('j') => self.next_file_browser_item(),
+                            Char('k') => {
                                 self.previous_file_browser_item()
                             }
-                            crossterm::event::KeyCode::Char('h') => self.parent_directory(),
-                            crossterm::event::KeyCode::Char('l') => self.enter_directory(),
-                            crossterm::event::KeyCode::Char('p') => {
-                                self.switch_to(ActiveBlock::PlaylistBlock)
-                            }
-                            crossterm::event::KeyCode::Char('/') => {
-                                self.switch_to(ActiveBlock::FilterNameBlock)
-                            }
-                            crossterm::event::KeyCode::Char('s') => self.set_pwd_as_playlist(),
+                            Char('h') => self.parent_directory(),
+                            Char('l') => self.enter_directory(),
+                            Char('p') => {
+                                self.switch_to(ActiveBlock::Playlist)
+                            },
+                            Char('/') => {
+                                self.clear_filter_strings();
+                                self.apply_filter();
+                                self.sync_playlist();
+                                self.switch_to(ActiveBlock::FilterName)
+                            },
+                            Char('s') => self.set_pwd_as_playlist(),
                             _ => {}
                         },
-                        ActiveBlock::FilterNameBlock
-                        | ActiveBlock::FilterArtistBlock
-                        | ActiveBlock::FilterWorkBlock => match key.code {
-                            crossterm::event::KeyCode::Enter => {
-                                self.switch_to(ActiveBlock::PlaylistBlock)
-                            }
-                            crossterm::event::KeyCode::Tab => self.toggle_filter_block(),
-                            crossterm::event::KeyCode::Char(value) => self.push_string_input(value),
-                            crossterm::event::KeyCode::Backspace => self.pop_string_input(),
+                        ActiveBlock::FilterName   |
+                        ActiveBlock::FilterArtist |
+                        ActiveBlock::FilterWork => match key.code {
+                            Enter => self.switch_to(ActiveBlock::Playlist),
+                            Tab => self.toggle_filter_block(),
+                            Char(value) => self.push_string_input(value),
+                            Backspace => self.pop_string_input(),
                             _ => {}
                         },
                     }
@@ -255,9 +260,9 @@ impl App {
 
     fn toggle_filter_block(&mut self) {
         self.activate_block = match &self.activate_block {
-            ActiveBlock::FilterNameBlock => ActiveBlock::FilterArtistBlock,
-            ActiveBlock::FilterArtistBlock => ActiveBlock::FilterWorkBlock,
-            ActiveBlock::FilterWorkBlock => ActiveBlock::FilterNameBlock,
+            ActiveBlock::FilterName => ActiveBlock::FilterArtist,
+            ActiveBlock::FilterArtist => ActiveBlock::FilterWork,
+            ActiveBlock::FilterWork => ActiveBlock::FilterName,
             other => *other,
         };
         self.need_redraw = true;
@@ -265,9 +270,9 @@ impl App {
 
     fn push_string_input(&mut self, value: char) {
         match self.activate_block {
-            ActiveBlock::FilterNameBlock => self.filter_name_string.push(value),
-            ActiveBlock::FilterArtistBlock => self.filter_artist_string.push(value),
-            ActiveBlock::FilterWorkBlock => self.filter_work_string.push(value),
+            ActiveBlock::FilterName => self.filter_name_string.push(value),
+            ActiveBlock::FilterArtist => self.filter_artist_string.push(value),
+            ActiveBlock::FilterWork => self.filter_work_string.push(value),
             _ => {}
         }
         self.apply_filter();
@@ -282,13 +287,13 @@ impl App {
 
     fn pop_string_input(&mut self) {
         match self.activate_block {
-            ActiveBlock::FilterNameBlock => {
+            ActiveBlock::FilterName => {
                 self.filter_name_string.pop();
             }
-            ActiveBlock::FilterArtistBlock => {
+            ActiveBlock::FilterArtist => {
                 self.filter_artist_string.pop();
             }
-            ActiveBlock::FilterWorkBlock => {
+            ActiveBlock::FilterWork => {
                 self.filter_work_string.pop();
             }
             _ => {}
@@ -457,6 +462,7 @@ impl App {
     }
 
     fn set_pwd_as_playlist(&mut self) {
+        self.clear_filter_strings();
         self.playlist = Playlist::from_paths(FileManager::get_file_path_list_static(
             self.current_path.clone(),
         ));
@@ -502,6 +508,12 @@ impl App {
 
     pub fn get_volume(&self) -> u32 {
         self.player_status.volume
+    }
+
+    fn clear_filter_strings(&mut self) {
+        self.filter_name_string.clear();
+        self.filter_artist_string.clear();
+        self.filter_work_string.clear();
     }
 
     fn apply_filter(&mut self) {

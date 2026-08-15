@@ -23,7 +23,7 @@ impl FileBrowserDrawer {
     fn render_block_with_border(frame: &mut Frame, app: &mut App, area: Rect) -> Rect {
         let block = Block::default()
             .borders(app.theme.file_browser_theme.file_browser_borders)
-            .title(if app.activate_block == ActiveBlock::FileBrowserBlock {
+            .title(if app.activate_block == ActiveBlock::FileBrowser {
                 Line::from("File Browser")
                     .style(app.theme.selected_area_style)
                     .left_aligned()

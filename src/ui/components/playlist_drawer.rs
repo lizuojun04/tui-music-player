@@ -28,7 +28,7 @@ impl PlaylistDrawer {
     fn render_block_with_border(frame: &mut Frame, app: &mut App, area: Rect) -> Rect {
         let block = Block::default()
             .borders(app.theme.playlist_theme.playlist_borders)
-            .title(if app.activate_block == ActiveBlock::PlaylistBlock {
+            .title(if app.activate_block == ActiveBlock::Playlist {
                 Line::from("Playlist")
                     .style(app.theme.selected_area_style)
                     .left_aligned()

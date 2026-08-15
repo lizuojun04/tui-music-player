@@ -27,7 +27,7 @@ impl Drawable for SearchDrawer {
 impl SearchDrawer {
     fn render_name_search(frame: &mut Frame, app: &mut App, area: Rect) {
         let filter_string = app.filter_name_string.clone();
-        let is_active = app.activate_block == ActiveBlock::FilterNameBlock;
+        let is_active = app.activate_block == ActiveBlock::FilterName;
         Self::render_search_block(
             frame,
             app,
@@ -40,7 +40,7 @@ impl SearchDrawer {
 
     fn render_artist_search(frame: &mut Frame, app: &mut App, area: Rect) {
         let filter_string = app.filter_artist_string.clone();
-        let is_active = app.activate_block == ActiveBlock::FilterArtistBlock;
+        let is_active = app.activate_block == ActiveBlock::FilterArtist;
         Self::render_search_block(
             frame,
             app,
@@ -53,7 +53,7 @@ impl SearchDrawer {
 
     fn render_work_search(frame: &mut Frame, app: &mut App, area: Rect) {
         let filter_string = app.filter_work_string.clone();
-        let is_active = app.activate_block == ActiveBlock::FilterWorkBlock;
+        let is_active = app.activate_block == ActiveBlock::FilterWork;
         Self::render_search_block(
             frame,
             app,
