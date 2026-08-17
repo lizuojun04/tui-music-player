@@ -13,7 +13,6 @@ ptm 是一个基于 rust 开发的终端音乐播放器
 #### 系统依赖
 
 ---
-
 - nerdfont  
   很多 icon 是使用 nerdfont 的 icon
 
@@ -32,11 +31,11 @@ $ ./target/release/tui-music-player
 
 ```sh
 $ tui-music-player daemon
-$ tui-music-player continue
-$ tui-music-player pause
+$ tui-music-player toggle-play
 $ tui-music-player stop
 $ tui-music-player next
 $ tui-music-player prev
+$ tui-music-player toggle-shuffle
 ```
 
 默认打开当前文件夹，如果需要切换文件夹，按照下面键位切换即可
@@ -85,3 +84,4 @@ $ tui-music-player prev
 - [ ] 接入系统接口，能直接通过键盘控制歌曲
 - [x] 在搜索栏中敲入字符，然后 file manager 中 set playlist，然后再在搜索栏中敲入或者是重新删除再敲入，会有问题
 - [ ] config 文件
+- [ ] `root-dir` 设置是否需要传 `root_dir` 给 `daemon` 进程

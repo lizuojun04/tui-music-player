@@ -37,18 +37,37 @@ fn run() -> io::Result<()> {
     match command.as_deref() {
         None => {
             ensure_daemon()?;
-            run_tui()
+            run_tui(None)
         }
-        Some("daemon") => PlayerDaemon::run(),
-        Some("continue") => send_command(PlayerRequest::Continue),
-        Some("pause") => send_command(PlayerRequest::Pause),
-        Some("stop") => send_command(PlayerRequest::Shutdown),
-        Some("next") => send_command(PlayerRequest::Next),
-        Some("prev") => send_command(PlayerRequest::Prev),
-        Some(other) => Err(io::Error::new(
+        Some("root-dir")       => {
+            let root_dir_arg = env::args().nth(2).ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "missing argument for 'root_dir' command",
+                )
+            })?;
+            let root_dir = PathBuf::from(root_dir_arg);
+            ensure_daemon()?;
+            run_tui(Some(root_dir))
+        }
+        Some("daemon")         => PlayerDaemon::run(),
+        Some("toggle-play")    => {
+            if PlayerClient.state()?.is_playing {
+                send_command(PlayerRequest::Pause)
+            } else {
+                send_command(PlayerRequest::Continue)
+            }
+        }
+        Some("stop")           => send_command(PlayerRequest::Shutdown),
+        Some("next")           => send_command(PlayerRequest::Next),
+        Some("prev")           => send_command(PlayerRequest::Prev),
+        Some("toggle-shuffle") => {
+            send_command(PlayerRequest::SetShuffle { enabled: !PlayerClient.state()?.shuffle })
+        }
+        Some(other)      => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!(
-                "unknown command '{other}'\nusage: tui-music-player [daemon|continue|pause|stop|next|prev]"
+                "unknown command '{other}'\nusage: tui-music-player [daemon|toggle-play|stop|next|prev|toggle-shuffle]"
             ),
         )),
     }
@@ -97,9 +116,12 @@ fn send_command(request: PlayerRequest) -> io::Result<()> {
     })
 }
 
-fn run_tui() -> io::Result<()> {
-    let root_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("/home/"));
-    let mut app = App::new(root_dir);
+fn run_tui(root_dir: Option<PathBuf>) -> io::Result<()> {
+    let _root_dir = match root_dir {
+        Some(dir) => dir,
+        None => env::current_dir().unwrap_or_else(|_| PathBuf::from("/home/")),
+    };
+    let mut app = App::new(_root_dir);
     let input_enabled = Arc::new(AtomicBool::new(false));
     KeyInput::listen_key_input(app.event_sender.clone(), input_enabled.clone());
 
@@ -149,3 +171,4 @@ fn wait_until_foreground() {
         }
     }
 }
+
